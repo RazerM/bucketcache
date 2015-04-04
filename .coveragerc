@@ -4,3 +4,9 @@ exclude_lines =
     def _repr
     raise NotImplementedError
     except ImportError:
+    pass
+    def test_cache_overhead
+    def test_cache_no_overhead
+    def test_deferred_performance
+    def test_standard_performance
+    pytest.main()
