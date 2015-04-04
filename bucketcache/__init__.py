@@ -130,7 +130,7 @@ class Bucket(Container, object):
 
     def _set_obj_with_hash(self, key_hash, obj):
         file_path = self._path_for_hash(key_hash)
-        with file_path.open(self._write_mode) as f:
+        with open(str(file_path), self._write_mode) as f:
             obj.dump(f)
 
         self._cache[key_hash] = obj
@@ -462,7 +462,7 @@ class DeferredWriteBucket(Bucket):
             # but we can check here to avoid unnecessary writes.
             if not obj.has_expired():
                 file_path = self._path_for_hash(key_hash)
-                with file_path.open(self._write_mode) as f:
+                with open(str(file_path), self._write_mode) as f:
                     obj.dump(f)
 
 
