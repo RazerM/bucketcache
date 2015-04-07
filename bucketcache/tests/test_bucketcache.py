@@ -42,22 +42,22 @@ class CustomObject(RepresentationMixin, object):
 
 @pytest.yield_fixture(params=cache_objects, ids=cache_ids)
 def cache_all(request, tmpdir):
-    yield Bucket(path=str(tmpdir), cache_cls=request.param)
+    yield Bucket(path=str(tmpdir), backend=request.param)
 
 
 @pytest.yield_fixture(params=[PickleBackend])
 def cache_serializable(request, tmpdir):
-    yield Bucket(path=str(tmpdir), cache_cls=request.param)
+    yield Bucket(path=str(tmpdir), backend=request.param)
 
 
 @pytest.yield_fixture(params=cache_objects, ids=cache_ids)
 def expiring_cache_all(request, tmpdir):
-    yield Bucket(path=str(tmpdir), cache_cls=request.param, seconds=2)
+    yield Bucket(path=str(tmpdir), backend=request.param, seconds=2)
 
 
 @pytest.yield_fixture(params=cache_objects, ids=cache_ids)
 def deferred_cache_all(request, tmpdir):
-    yield DeferredWriteBucket(path=str(tmpdir), cache_cls=request.param)
+    yield DeferredWriteBucket(path=str(tmpdir), backend=request.param)
 
 
 def test_retrieval(cache_all):
@@ -132,7 +132,7 @@ def test_unknown_load_error(tmpdir):
     from unittest.mock import patch
 
     with patch.object(PickleBackend, 'from_file', side_effect=RuntimeError):
-        cache = Bucket(str(tmpdir), cache_cls=PickleBackend)
+        cache = Bucket(str(tmpdir), backend=PickleBackend)
         cache['my key'] = 'this'
         cache.unload_key('my key')
         with pytest.raises(RuntimeError):
@@ -177,10 +177,10 @@ def test_backend_missing_attributes(tmpdir):
             pass
 
     with pytest.raises(TypeError):
-        cache = Bucket(str(tmpdir), cache_cls=MissingAttributes)
+        cache = Bucket(str(tmpdir), backend=MissingAttributes)
 
     with pytest.raises(TypeError):
-        cache = Bucket(str(tmpdir), cache_cls=MissingConstructor)
+        cache = Bucket(str(tmpdir), backend=MissingConstructor)
 
 
 def test_corruption(cache_all):
@@ -279,7 +279,7 @@ def test_deferred_decorator(deferred_cache_all):
     cache.sync()
 
     # Verify that new cache can load key from file.
-    newcache = DeferredWriteBucket(path=cache.path, cache_cls=cache.cache_cls)
+    newcache = DeferredWriteBucket(path=cache.path, backend=cache.backend)
 
     @newcache
     def add1(a):
@@ -367,7 +367,7 @@ def test_deferred_set(deferred_cache_all):
     assert path.exists()
 
     # Verify that new cache can load key from file.
-    newcache = DeferredWriteBucket(path=cache.path, cache_cls=cache.cache_cls)
+    newcache = DeferredWriteBucket(path=cache.path, backend=cache.backend)
     assert newcache[key] == 'this'
 
     # Check updating value works
@@ -423,7 +423,7 @@ def test_lifetime(tmpdir):
         bucket = Bucket(str(tmpdir), seconds=-5)
 
 
-def test_cache_cls(tmpdir):
+def test_backend(tmpdir):
     with pytest.raises(TypeError):
         bucket = Bucket(str(tmpdir), 5)
 
@@ -586,7 +586,7 @@ def test_msgpack(tmpdir):
 
     msgpack_available = bucketcache.backends.msgpack_available
     bucketcache.backends.msgpack_available = False
-    cache = Bucket(str(tmpdir), cache_cls=MessagePackBackend)
+    cache = Bucket(str(tmpdir), backend=MessagePackBackend)
     with pytest.raises(TypeError):
         cache['my key'] = 'this'
 

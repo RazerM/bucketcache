@@ -33,13 +33,14 @@ class Bucket(Container, object):
     """Dictionary-like object backed by a file cache.
 
     :param path: Directory for storing cached objects.
-    :param cache_cls: Predefined or custom :py:class:`~bucketcache.Backend`
-        . Default: :py:class:`bucketcache.PickleBackend`
-    :type cache_cls: :py:class:`bucketcache.Backend`
-    :param kwargs: Arguments that will be passed to :py:class:`datetime.timedelta` to define
+    :param backend: Predefined or custom :py:class:`~bucketcache.Backend`
+                      . Default: :py:class:`bucketcache.PickleBackend`
+    :type backend: :py:class:`bucketcache.Backend`
+    :param kwargs: Arguments that will be passed to
+                   :py:class:`datetime.timedelta` to define
     """
 
-    def __init__(self, path, cache_cls=None, config=None, lifetime=None, **kwargs):
+    def __init__(self, path, backend=None, config=None, lifetime=None, **kwargs):
         self.path = Path(path)
         if kwargs:
             valid_kwargs = {'days', 'seconds', 'microseconds', 'milliseconds',
@@ -62,20 +63,20 @@ class Bucket(Container, object):
             self.path.mkdir()
         self.path.resolve()
 
-        if cache_cls:
-            error = TypeError("'cache_cls' must inherit from "
+        if backend:
+            error = TypeError("'backend' must inherit from "
                               "bucketcache.Backend")
-            if inspect.isclass(cache_cls):
-                if not issubclass(cache_cls, Backend):
+            if inspect.isclass(backend):
+                if not issubclass(backend, Backend):
                     raise error
             else:
                 raise error
 
-            cache_cls.check_concrete()
+            backend.check_concrete()
 
-            self.cache_cls = cache_cls
+            self.backend = backend
         else:
-            self.cache_cls = PickleBackend
+            self.backend = PickleBackend
 
         self.config = config
 
@@ -123,7 +124,7 @@ class Bucket(Container, object):
             obj = self._get_obj_from_hash(key_hash)
             obj.value = value
         except KeyInvalidError:
-            obj = self.cache_cls(value, config=self.config)
+            obj = self.backend(value, config=self.config)
 
         obj.expiration_date = self._object_expiration_date()
         return obj
@@ -169,7 +170,7 @@ class Bucket(Container, object):
         else:
             try:
                 with file_path.open(self._read_mode) as f:
-                    obj = self.cache_cls.from_file(f, config=self.config)
+                    obj = self.backend.from_file(f, config=self.config)
             except IOError as e:
                 if e.errno == errno.ENOENT:
                     raise KeyFileNotFoundError("<key hash '{}'>".format(key_hash))
@@ -177,6 +178,8 @@ class Bucket(Container, object):
                     raise
             except CacheLoadError as e:
                 raise KeyInvalidError(e)
+            except Exception:
+                raise
 
             self._cache[key_hash] = obj
 
@@ -284,11 +287,11 @@ class Bucket(Container, object):
         return self._path_for_hash(key_hash)
 
     def _path_for_hash(self, key_hash):
-        filename = '{}.{}'.format(key_hash, self.cache_cls.file_extension)
+        filename = '{}.{}'.format(key_hash, self.backend.file_extension)
         return self.path / filename
 
     def _hash_for_key(self, key):
-        hash_str = self.cache_cls.__name__ + _hash_dumps(key)
+        hash_str = self.backend.__name__ + _hash_dumps(key)
         return md5(hash_str.encode('utf-8')).hexdigest()
 
     def _abbreviated_key(self, key):
@@ -306,16 +309,16 @@ class Bucket(Container, object):
 
     @property
     def _read_mode(self):
-        return 'rb' if self.cache_cls.binary_format else 'r'
+        return 'rb' if self.backend.binary_format else 'r'
 
     @property
     def _write_mode(self):
-        return 'wb' if self.cache_cls.binary_format else 'w'
+        return 'wb' if self.backend.binary_format else 'w'
 
     def _repr_helper(self, r):
         r.keyword_with_value('path', str(self.path))
         r.keyword_from_attr('config')
-        r.keyword_with_value('cache_cls', self.cache_cls.__name__, raw=True)
+        r.keyword_with_value('backend', self.backend.__name__, raw=True)
         if self.lifetime:
             for attr in ('days', 'seconds', 'microseconds'):
                 value = getattr(self.lifetime, attr)
@@ -446,7 +449,7 @@ class DeferredWriteBucket(Bucket):
 
     @classmethod
     def from_bucket(cls, bucket):
-        self = cls(path=bucket.path, cache_cls=bucket.cache_cls)
+        self = cls(path=bucket.path, backend=bucket.backend)
         self.lifetime = bucket.lifetime
         self._cache = bucket._cache
         return self
