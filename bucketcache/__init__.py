@@ -129,10 +129,6 @@ class Bucket(Container, object):
         obj.expiration_date = self._object_expiration_date()
         return obj
 
-    def _set_obj(self, key, obj):
-        key_hash = self._hash_for_key(key)
-        self._set_obj_with_hash(key_hash, obj)
-
     def _set_obj_with_hash(self, key_hash, obj):
         file_path = self._path_for_hash(key_hash)
         with open(str(file_path), self._write_mode) as f:
