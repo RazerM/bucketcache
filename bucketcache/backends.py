@@ -33,8 +33,8 @@ __all__ = [
 ]
 
 
+@six.add_metaclass(ABCMeta)
 class Backend(RepresentationMixin, object):
-    __metaclass__ = ABCMeta
     abstract_attributes = {'binary_format', 'default_config', 'file_extension'}
 
     def __init__(self, value, expiration_date=None, config=None):
