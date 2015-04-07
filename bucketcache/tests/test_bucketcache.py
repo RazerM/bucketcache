@@ -182,6 +182,12 @@ def test_backend_missing_attributes(tmpdir):
     with pytest.raises(TypeError):
         cache = Bucket(str(tmpdir), backend=MissingConstructor)
 
+    with pytest.raises(TypeError):
+        backend = MissingAttributes('this')
+
+    with pytest.raises(TypeError):
+        backend = MissingConstructor('that')
+
 
 def test_corruption(cache_all):
     """Test loading of corrupted file."""

@@ -38,19 +38,16 @@ class Backend(RepresentationMixin, object):
     abstract_attributes = {'binary_format', 'default_config', 'file_extension'}
 
     def __init__(self, value, expiration_date=None, config=None):
+        self.__class__.check_concrete(skip_methods=True)
+
         self.value = value
         self.expiration_date = expiration_date
         self.config = self.valid_config(config)
 
-        for attr in Backend.abstract_attributes:
-            if not hasattr(self.__class__, attr):
-                raise TypeError('Concrete class {} missing abstract attribute:'
-                                ' {}'.format(self.__class__.__name__, attr))
-
         super(Backend, self).__init__()
 
     @classmethod
-    def check_concrete(cls):
+    def check_concrete(cls, skip_methods=False):
         """Very that we're a concrete class.
 
         Check that abstract methods have been overridden, and verify that
@@ -60,7 +57,7 @@ class Backend(RepresentationMixin, object):
         also do this here to ensure the given Backend is valid when the Bucket
         is created.
         """
-        if cls.__abstractmethods__:
+        if not skip_methods and cls.__abstractmethods__:
             _raise_keys(cls.__abstractmethods__, "Concrete class '{}' missing "
                         "abstract method{{s}}: {{keys}}".format(cls.__name__))
 
