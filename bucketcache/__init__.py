@@ -14,6 +14,8 @@ from pathlib import Path
 import six
 from represent import RepresentationHelper
 
+# Import <Config>s and <Backend>s for convenient importing.
+from bucketcache.config import *
 from bucketcache.backends import (
     Backend, JSONBackend, MessagePackBackend, PickleBackend)
 from bucketcache.exceptions import *
