@@ -114,6 +114,9 @@ def test_complex_keys(cache_all):
         cache.unload_key(complex_key)
         assert cache[complex_key] == value
 
+    long_missing_key = list(range(1000))
+    with pytest.raises(KeyError):
+        cache[long_missing_key]
 
 def test_complex_values(cache_serializable):
     """Test serialization of complex values.
