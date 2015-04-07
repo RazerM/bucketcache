@@ -5,6 +5,7 @@ exclude_lines =
     raise NotImplementedError
     except ImportError:
     pass
+    raise$
     def test_cache_overhead
     def test_cache_no_overhead
     def test_deferred_performance
