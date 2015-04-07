@@ -71,6 +71,8 @@ class Bucket(Container, object):
             else:
                 raise error
 
+            cache_cls.check_concrete()
+
             self.cache_cls = cache_cls
         else:
             self.cache_cls = PickleBackend

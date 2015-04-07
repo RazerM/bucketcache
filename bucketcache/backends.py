@@ -10,7 +10,7 @@ from represent import RepresentationMixin
 
 from bucketcache.config import *
 from bucketcache.exceptions import *
-from bucketcache.utilities import _raise_invalid_keys
+from bucketcache.utilities import _raise_invalid_keys, _raise_keys
 
 from .abc import abstractclassmethod
 
@@ -35,7 +35,7 @@ __all__ = [
 
 class Backend(RepresentationMixin, object):
     __metaclass__ = ABCMeta
-    abstract_attributes = ('binary_format', 'default_config', 'file_extension')
+    abstract_attributes = {'binary_format', 'default_config', 'file_extension'}
 
     def __init__(self, value, expiration_date=None, config=None):
         self.value = value
@@ -48,6 +48,28 @@ class Backend(RepresentationMixin, object):
                                 ' {}'.format(self.__class__.__name__, attr))
 
         super(Backend, self).__init__()
+
+    @classmethod
+    def check_concrete(cls):
+        """Very that we're a concrete class.
+
+        Check that abstract methods have been overridden, and verify that
+        abstract class attributes exist.
+
+        Although ABCMeta checks the abstract methods on instantiation, we can
+        also do this here to ensure the given Backend is valid when the Bucket
+        is created.
+        """
+        if cls.__abstractmethods__:
+            _raise_keys(cls.__abstractmethods__, "Concrete class '{}' missing "
+                        "abstract method{{s}}: {{keys}}".format(cls.__name__))
+
+        missing = {name
+                   for name in Backend.abstract_attributes
+                   if not hasattr(cls, name)}
+        if missing:
+            _raise_keys(missing, "Concrete class '{}' missing abstract"
+                        "attribute{{s}}: {{keys}}".format(cls.__name__))
 
     @classmethod
     def valid_config(cls, config):

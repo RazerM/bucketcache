@@ -36,6 +36,10 @@ def _raise_invalid_keys(valid_keys, passed_keys, message=None):
         message = 'Invalid keyword argument{s}: {keys}'
     if not passed_keys <= valid_keys:
         invalid_keys = passed_keys - valid_keys
-        invalid_str = ', '.join(invalid_keys)
-        s = 's' if len(invalid_keys) > 1 else ''
-        raise TypeError(message.format(s=s, keys=invalid_str))
+        _raise_keys(invalid_keys, message=message)
+
+
+def _raise_keys(keys, message):
+    invalid_str = ', '.join(keys)
+    s = 's' if len(keys) > 1 else ''
+    raise TypeError(message.format(s=s, keys=invalid_str))
