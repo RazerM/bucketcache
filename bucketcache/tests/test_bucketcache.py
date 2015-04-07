@@ -11,7 +11,9 @@ from represent import RepresentationMixin
 from six import exec_
 
 from bucketcache import Bucket, deferred_write, DeferredWriteBucket
-from bucketcache.backends import JSONBackend, MessagePackBackend, PickleBackend
+from bucketcache.backends import (
+    Backend, JSONBackend, MessagePackBackend, PickleBackend)
+from bucketcache.config import PickleConfig
 
 cache_objects = [JSONBackend, MessagePackBackend, PickleBackend]
 cache_ids = ['json', 'msgpack', 'pickle']
@@ -131,6 +133,30 @@ def test_complex_values(cache_serializable):
 
         cache.unload_key(i)
         assert cache[i] == complex_value
+
+
+def test_backend_missing_attributes(tmpdir):
+    class MissingAttributes(Backend):
+        def dump(self, fp):
+            pass
+
+        @classmethod
+        def from_file(cls, fp):
+            pass
+
+    class MissingConstructor(Backend):
+        binary_format = True
+        default_config = PickleConfig
+        file_extension = 'pickle'
+
+        def dump(self, fp):
+            pass
+
+    with pytest.raises(TypeError):
+        cache = Bucket(str(tmpdir), cache_cls=MissingAttributes)
+
+    with pytest.raises(TypeError):
+        cache = Bucket(str(tmpdir), cache_cls=MissingConstructor)
 
 
 def test_corruption(cache_all):
