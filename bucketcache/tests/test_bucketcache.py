@@ -21,6 +21,13 @@ cache_ids = ['json', 'msgpack', 'pickle']
 slow = pytest.mark.slow
 
 
+def requires_python_version(*version):
+    vbool = sys.version_info < tuple(version)
+    sversion = '.'.join([str(v) for v in version])
+    message = 'Requires Python {}'.format(sversion)
+    return pytest.mark.skipif(vbool, reason=message)
+
+
 class CustomObject(RepresentationMixin, object):
     def __init__(self, here, be, parameters):
         self.here = here
@@ -117,6 +124,20 @@ def test_complex_keys(cache_all):
     long_missing_key = list(range(1000))
     with pytest.raises(KeyError):
         cache[long_missing_key]
+
+
+@requires_python_version(3, 3)
+def test_unknown_load_error(tmpdir):
+    # Ensure that unknown error in backend load from file bubbles up.
+    from unittest.mock import patch
+
+    with patch.object(PickleBackend, 'from_file', side_effect=RuntimeError):
+        cache = Bucket(str(tmpdir), cache_cls=PickleBackend)
+        cache['my key'] = 'this'
+        cache.unload_key('my key')
+        with pytest.raises(RuntimeError):
+            cache['my key']
+
 
 def test_complex_values(cache_serializable):
     """Test serialization of complex values.
@@ -226,8 +247,7 @@ def test_decorator(cache_all):
             pass
 
 
-@pytest.mark.skipif(sys.version_info < (3, 0),
-                    reason="Requires Python 3")
+@requires_python_version(3)
 def test_decorator_fullargspec(cache_all):
     cache = cache_all
 
