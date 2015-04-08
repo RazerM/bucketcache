@@ -447,6 +447,8 @@ class DeferredWriteBucket(Bucket):
     def from_bucket(cls, bucket):
         self = cls(path=bucket.path, backend=bucket.backend)
         self.lifetime = bucket.lifetime
+        self.backend = bucket.backend
+        self.config = bucket.config
         self._cache = bucket._cache
         return self
 
