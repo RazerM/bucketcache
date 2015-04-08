@@ -453,6 +453,7 @@ class DeferredWriteBucket(Bucket):
         return self
 
     def _set_obj_with_hash(self, key_hash, obj):
+        """Reimplement Bucket._set_obj_with_hash to skip writing to file."""
         self._cache[key_hash] = obj
 
     def unload_key(self, key):
@@ -462,6 +463,7 @@ class DeferredWriteBucket(Bucket):
         return super(DeferredWriteBucket, self).unload_key(key)
 
     def sync(self):
+        """This is where the deferred writes get committed to file."""
         for key_hash, obj in six.iteritems(self._cache):
             # Objects are checked for expiration in __getitem__,
             # but we can check here to avoid unnecessary writes.
