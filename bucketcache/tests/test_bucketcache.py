@@ -473,6 +473,18 @@ def test_methods(cache_all):
     assert sum_called == 2
 
 
+def test_decorator_modified_arguments(cache_all):
+    cache = cache_all
+
+    @cache
+    def modifies_arguments(a):
+        a.append(0)
+        return sum(a)
+
+    with pytest.raises(ValueError):
+        modifies_arguments([1, 2, 4])
+
+
 def test_decorator_nocache(cache_all):
     """Test nocache decorator argument"""
     cache = cache_all
