@@ -565,7 +565,7 @@ def test_decorator_callback(cache_all):
     callback_flag = False
 
     @fun.callback
-    def fun():
+    def fun(varargs, callargs, return_value, expiration_date):
         global callback_flag
         callback_flag = True
 
@@ -588,7 +588,7 @@ def test_decorator_callback(cache_all):
             return self.a + self.b + self.c + self.d + extra
 
         @sum.callback
-        def sum(self):
+        def sum(self, varargs, callargs, return_value, expiration_date):
             global callback_flag
             callback_flag = True
 

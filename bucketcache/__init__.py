@@ -389,9 +389,11 @@ class CachedFunction(object):
                     if self.callback:
                         if self.method:
                             instance = callargs[argspec.args[0]]
-                            self.callback(instance)
+                            self.callback(instance, varargs, callargs, result,
+                                          obj.expiration_date)
                         else:
-                            self.callback()
+                            self.callback(varargs, callargs, result,
+                                          obj.expiration_date)
 
             return result
 
