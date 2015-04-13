@@ -15,13 +15,15 @@ import six
 from represent import RepresentationHelper
 
 # Import <Config>s and <Backend>s for convenient importing.
-from bucketcache.config import *
 from bucketcache.backends import (
     Backend, JSONBackend, MessagePackBackend, PickleBackend)
+from bucketcache.config import *
 from bucketcache.exceptions import *
-from bucketcache.utilities import _hash_dumps, _raise_invalid_keys
+from bucketcache.utilities import (
+    _hash_dumps, _raise_invalid_keys, normalize_args)
 
 from .contextlib import suppress
+
 
 __author__ = 'Frazer McLean <frazer@frazermclean.co.uk>'
 __version__ = '1.0b1'
@@ -364,13 +366,13 @@ class CachedFunction(object):
 
         self.fref = weakref.ref(f)
 
-        def core_wrapper(key_hash, **callargs):
+        def core_wrapper(key_hash, *varargs, **callargs):
             skip_cache = False
             if self.nocache:
                 skip_cache = callargs[self.nocache]
 
             def call_and_cache():
-                res = f(**callargs)
+                res = f(*varargs, **callargs)
                 obj = self.bucket._update_or_make_obj_with_hash(key_hash, res)
                 self.bucket._set_obj_with_hash(key_hash, obj)
                 return res
@@ -397,7 +399,7 @@ class CachedFunction(object):
             @wraps(f)
             def method_wrapper(*args, **kwargs):
                 instance = args[0]
-                callargs = inspect.getcallargs(f, *args, **kwargs)
+                varargs, callargs = normalize_args(f, *args, **kwargs)
                 sigcallargs = callargs.copy()
                 # Delete instance parameter from call arg used for signature.
                 del sigcallargs[argspec.args[0]]
@@ -405,11 +407,11 @@ class CachedFunction(object):
                 if self.nocache:
                     del sigcallargs[self.nocache]
 
-                signature = (instance.__dict__, fsig, sigcallargs)
+                signature = (instance.__dict__, fsig, varargs, sigcallargs)
                 # Make key_hash before and after function call, and raise error
                 # if any variables are modified.
                 key_hash = self.bucket._hash_for_key(signature)
-                ret = core_wrapper(key_hash, **callargs)
+                ret = core_wrapper(key_hash, *varargs, **callargs)
 
                 post_key_hash = self.bucket._hash_for_key(signature)
                 if key_hash != post_key_hash:
@@ -424,7 +426,7 @@ class CachedFunction(object):
         else:
             @wraps(f)
             def func_wrapper(*args, **kwargs):
-                callargs = inspect.getcallargs(f, *args, **kwargs)
+                varargs, callargs = normalize_args(f, *args, **kwargs)
                 # Delete nocache parameter from call arg used for signature.
                 if self.nocache:
                     sigcallargs = callargs.copy()
@@ -432,11 +434,11 @@ class CachedFunction(object):
                 else:
                     sigcallargs = callargs
 
-                signature = (fsig, sigcallargs)
+                signature = (fsig, varargs, sigcallargs)
                 # Make key_hash before and after function call, and raise error
                 # if any variables are modified.
                 key_hash = self.bucket._hash_for_key(signature)
-                ret = core_wrapper(key_hash, **callargs)
+                ret = core_wrapper(key_hash, *varargs, **callargs)
 
                 post_key_hash = self.bucket._hash_for_key(signature)
                 if key_hash != post_key_hash:
