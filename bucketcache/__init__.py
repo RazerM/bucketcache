@@ -379,12 +379,14 @@ class CachedFunction(object):
 
             if skip_cache:
                 result = call_and_cache()
+                called = True
             else:
                 try:
                     obj = self.bucket._get_obj_from_hash(key_hash)
                     result = obj.value
                 except KeyInvalidError:
                     result = call_and_cache()
+                    called = True
                 else:
                     if self.callback:
                         if self.method:
@@ -395,7 +397,7 @@ class CachedFunction(object):
                             self.callback(varargs, callargs, result,
                                           obj.expiration_date)
 
-            return result
+            return result, called
 
         if self.method:
             @wraps(f)
@@ -413,13 +415,14 @@ class CachedFunction(object):
                 # Make key_hash before and after function call, and raise error
                 # if any variables are modified.
                 key_hash = self.bucket._hash_for_key(signature)
-                ret = core_wrapper(key_hash, *varargs, **callargs)
+                ret, called = core_wrapper(key_hash, *varargs, **callargs)
 
-                post_key_hash = self.bucket._hash_for_key(signature)
-                if key_hash != post_key_hash:
-                    raise ValueError(
-                        "modification of input parameters by "
-                        "function '{}' cannot be cached.".format(f.__name__))
+                if called:
+                    post_key_hash = self.bucket._hash_for_key(signature)
+                    if key_hash != post_key_hash:
+                        raise ValueError(
+                            "modification of input parameters by "
+                            "function '{}' cannot be cached.".format(f.__name__))
 
                 return ret
 
@@ -440,13 +443,14 @@ class CachedFunction(object):
                 # Make key_hash before and after function call, and raise error
                 # if any variables are modified.
                 key_hash = self.bucket._hash_for_key(signature)
-                ret = core_wrapper(key_hash, *varargs, **callargs)
+                ret, called = core_wrapper(key_hash, *varargs, **callargs)
 
-                post_key_hash = self.bucket._hash_for_key(signature)
-                if key_hash != post_key_hash:
-                    raise ValueError(
-                        "modification of input parameters by "
-                        "function '{}' cannot be cached.".format(f.__name__))
+                if called:
+                    post_key_hash = self.bucket._hash_for_key(signature)
+                    if key_hash != post_key_hash:
+                        raise ValueError(
+                            "modification of input parameters by "
+                            "function '{}' cannot be cached.".format(f.__name__))
 
                 return ret
 
