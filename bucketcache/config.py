@@ -1,12 +1,13 @@
-import six
-from represent import (
-    PrettyRepresentationHelper, RepresentationHelper)
+from __future__ import absolute_import, division, print_function
 
-__all__ = [
+import six
+from represent import PrettyRepresentationHelper, RepresentationHelper
+
+__all__ = (
     'PickleConfig',
     'JSONConfig',
     'MessagePackConfig',
-]
+)
 
 
 class BackendConfig(object):

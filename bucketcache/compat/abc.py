@@ -26,30 +26,3 @@ except ImportError:
         def __init__(self, callable):
             callable.__isabstractmethod__ = True
             super(abstractclassmethod, self).__init__(callable)
-
-
-try:
-    from abc import abstractstaticmethod
-except ImportError:
-    class abstractstaticmethod(staticmethod):
-        """
-        A decorator indicating abstract staticmethods.
-
-        Similar to abstractmethod.
-
-        Usage:
-
-            class C(metaclass=ABCMeta):
-                @abstractstaticmethod
-                def my_abstract_staticmethod(...):
-                    ...
-
-        'abstractstaticmethod' is deprecated. Use 'staticmethod' with
-        'abstractmethod' instead.
-        """
-
-        __isabstractmethod__ = True
-
-        def __init__(self, callable):
-            callable.__isabstractmethod__ = True
-            super(abstractstaticmethod, self).__init__(callable)

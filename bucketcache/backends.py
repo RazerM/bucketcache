@@ -8,12 +8,10 @@ import six
 from dateutil.parser import parse
 from represent import RepresentationMixin
 
-from bucketcache.config import *
-from bucketcache.exceptions import *
-from bucketcache.utilities import _raise_invalid_keys, _raise_keys
-
-from .abc import abstractclassmethod
-
+from .compat.abc import abstractclassmethod
+from .config import *
+from .exceptions import *
+from .utilities import _raise_invalid_keys, _raise_keys
 
 try:
     import cPickle as pickle
@@ -26,11 +24,11 @@ try:
 except ImportError:
     msgpack_available = False
 
-__all__ = [
+__all__ = (
     'PickleBackend',
     'JSONBackend',
     'MessagePackBackend',
-]
+)
 
 
 @six.add_metaclass(ABCMeta)

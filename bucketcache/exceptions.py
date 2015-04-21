@@ -1,9 +1,11 @@
-__all__ = [
+from __future__ import absolute_import, division, print_function
+
+__all__ = (
     'KeyInvalidError',
     'KeyFileNotFoundError',
     'KeyExpirationError',
     'CacheLoadError',
-]
+)
 
 
 class KeyInvalidError(Exception):

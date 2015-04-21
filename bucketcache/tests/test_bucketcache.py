@@ -8,6 +8,10 @@ from time import sleep
 
 import pytest
 from represent import RepresentationMixin
+try:
+    from unittest.mock import patch
+except ImportError:
+    from mock import patch
 from six import exec_
 
 from bucketcache import Bucket, deferred_write, DeferredWriteBucket
@@ -126,10 +130,8 @@ def test_complex_keys(cache_all):
         cache[long_missing_key]
 
 
-@requires_python_version(3, 3)
 def test_unknown_load_error(tmpdir):
     # Ensure that unknown error in backend load from file bubbles up.
-    from unittest.mock import patch
 
     with patch.object(PickleBackend, 'from_file', side_effect=RuntimeError):
         cache = Bucket(str(tmpdir), backend=PickleBackend)
