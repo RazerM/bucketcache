@@ -320,6 +320,27 @@ def test_expiration(expiring_cache_all):
         del cache['my key']
 
 
+def test_lifetime_change(cache_all):
+    """Changing lifetime should force keys with larger lifetimes (or without)
+    to expire.
+    """
+    cache = cache_all
+
+    # Test non-expiring cache changing to finite lifetime.
+    cache['my key'] = 'this'
+    cache.lifetime = timedelta(seconds=2)
+    lifetime = cache.lifetime.total_seconds()
+    with pytest.raises(KeyError):
+        cache['my key']
+
+    # Test object expiring after new lifetime would.
+    cache.lifetime = timedelta(seconds=10)
+    cache['my key'] = 'this'
+    cache.lifetime = timedelta(seconds=2)
+    with pytest.raises(KeyError):
+        cache['my key']
+
+
 @slow
 def test_expiration_load(expiring_cache_all):
     """Ensure that we can load cache objects with expiry information."""

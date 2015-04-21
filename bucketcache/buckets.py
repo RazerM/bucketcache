@@ -187,10 +187,14 @@ class Bucket(Container, object):
         if self.lifetime:
             # If object expires after now + lifetime, then it was saved with a
             # previous Bucket() with a longer lifetime. Let's expire the key.
-            lifetime_changed = obj.expiration_date > self._object_expiration_date()
-            logger.warning('Object expires after now + current lifetime. '
-                           'Object must have been saved with previous cache '
-                           'settings. Expiring key.')
+            if not obj.expiration_date:
+                lifetime_changed = True
+            else:
+                lifetime_changed = obj.expiration_date > self._object_expiration_date()
+            if lifetime_changed:
+                logger.warning('Object expires after now + current lifetime. '
+                               'Object must have been saved with previous '
+                               'cache settings. Expiring key.')
         else:
             lifetime_changed = False
 
