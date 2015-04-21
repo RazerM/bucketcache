@@ -115,7 +115,7 @@ class Bucket(Container, object):
 
     def _update_or_make_obj_with_hash(self, key_hash, value):
         try:
-            obj = self._get_obj_from_hash(key_hash)
+            obj = self._get_obj_from_hash(key_hash, load_file=False)
             obj.value = value
         except KeyInvalidError:
             obj = self.backend(value, config=self.config)
@@ -152,12 +152,12 @@ class Bucket(Container, object):
         else:
             return obj
 
-    def _get_obj_from_hash(self, key_hash):
+    def _get_obj_from_hash(self, key_hash, load_file=True):
         file_path = self._path_for_hash(key_hash)
 
         if key_hash in self._cache:
             obj = self._cache[key_hash]
-        else:
+        elif load_file:
             logger.info('Attempt load from file: {}', file_path)
             try:
                 with file_path.open(self._read_mode) as f:
@@ -180,6 +180,9 @@ class Bucket(Container, object):
                 raise
 
             self._cache[key_hash] = obj
+        else:
+            raise KeyInvalidError("<key hash not found in internal "
+                                  "cache '{}'>".format(key_hash))
 
         if self.lifetime:
             # If object expires after now + lifetime, then it was saved with a
