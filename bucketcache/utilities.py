@@ -226,8 +226,8 @@ def _raise_keys(keys, message):
 
 
 def log_handled_exception(message, *args, **kwargs):
-    logger.info('Handled exception: ' + message, *args,
-                exc_info=sys.exc_info(), **kwargs)
+    logger.debug('Handled exception: ' + message, *args,
+                 exc_info=sys.exc_info(), **kwargs)
 
 # Create hash by dumping to json string with sorted keys.
 _hash_dumps = partial(json.dumps, sort_keys=True, cls=_HashJSONEncoder)
