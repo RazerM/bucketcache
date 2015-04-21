@@ -13,8 +13,8 @@ def watch():
     gen()
     try:
         call(['watchmedo', 'shell-command', '--patterns=*.rst;*.py',
-              '--ignore-pattern=_build/*', '--recursive'
-              '--command=sphinx-build -b html -W -E doc doc/_build/html'])
+              '--ignore-pattern=_build/*', '--recursive',
+              '--command=sphinx-build -b html doc doc/_build/html'])
     except FileNotFoundError:
         print('watchdog is required (pip install watchdog)')
 

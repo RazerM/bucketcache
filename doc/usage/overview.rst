@@ -98,9 +98,9 @@ For example, protocol version 4 could be used if on Python 3.4+
 Typically, all of the parameters that can be used by the relevant `dump` or `load` methods can be specified in a config object.
 
 Deferred Writes
-^^^^^^^^^^^^^^^
+---------------
 
-To prevent writing to file immediately, a :py:class:`bucketcache.DeferredWriteBucket` can be used. Keys are only written to file when ``bucket.sync()`` is called.
+To prevent writing to file immediately, a :py:class:`~bucketcache.DeferredWriteBucket` can be used. Keys are only written to file when ``bucket.sync()`` is called.
 
 :py:func:`bucketcache.deferred_write` is a context manager that defers writing until completion of the block.
 
@@ -130,11 +130,11 @@ It's also possible to create a :py:class:`~bucketcache.DeferredWriteBucket` manu
 Note that calling :py:meth:`~bucketcache.DeferredWriteBucket.unload_key` on a :py:class:`~bucketcache.DeferredWriteBucket` forces a sync.
 
 Decorator
-^^^^^^^^^
+---------
 
 Buckets can be used as function **and** method decorators.
 
-Perhaps we wanted to download hourly forecast data.
+As an example, we might want to download hourly forecast data:
 
 .. code-block:: python
 
@@ -147,7 +147,7 @@ Perhaps we wanted to download hourly forecast data.
     download_weather_forecast('Glasgow')  # Slow
     download_weather_forecast('Glasgow')  # Fast, uses cache.
 
-Perhaps we want to inform the user if the data is from the cache:
+We can use a callback to inform the user if the data is from the cache:
 
 .. code-block:: python
 
@@ -168,6 +168,7 @@ Let's modify the original function to allow refreshing the data manually:
         ...
     
     @download_weather_forecast.callback():
+    def download_weather_forecast():
         print('This data is not up-to-date. New forecasts are downloaded hourly.')
 
 By passing ``nocache='refresh'``, this tells the Bucket to **automatically** skip the cache if ``refresh == True``.
