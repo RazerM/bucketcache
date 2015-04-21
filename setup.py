@@ -39,6 +39,7 @@ extras_require.update(
         'packaging',
         'shovel',
         'sphinx',
+        'twine',
     ] + extras_require['test'])
 
 
