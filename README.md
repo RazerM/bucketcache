@@ -16,7 +16,7 @@
 $ pip install bucketcache
 ```
 
-### Automatic Generation
+### Quick Overview
 
 In one sentence, `Bucket` is a container object with optional lifetime backed by configurable serialisation methods that can also act as a function or method decorator.
 
