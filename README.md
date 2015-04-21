@@ -1,6 +1,8 @@
 ## BucketCache
-[![PyPI Version][ppi]][ppl] [![Python Version][pvi]][pvl] [![MIT License][mli]][mll]
+[![Build Status][bsi]][bsl] [![PyPI Version][ppi]][ppl] [![Python Version][pvi]][pvl] [![MIT License][mli]][mll]
 
+  [bsi]: http://img.shields.io/travis/RazerM/bucketcache.svg?style=flat-square
+  [bsl]: https://travis-ci.org/RazerM/bucketcache
   [ppi]: http://img.shields.io/pypi/v/bucketcache.svg?style=flat-square
   [ppl]: https://pypi.python.org/pypi/bucketcache/
   [pvi]: https://img.shields.io/badge/python-2.7%2C%203-brightgreen.svg?style=flat-square

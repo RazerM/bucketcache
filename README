@@ -1,7 +1,7 @@
 BucketCache
 -----------
 
-|PyPI Version| |Python Version| |MIT License|
+|Build Status| |PyPI Version| |Python Version| |MIT License|
 
 Installation
 ~~~~~~~~~~~~
@@ -61,6 +61,8 @@ Decorator:
 For in-depth information, `visit the
 documentation <http://pythonhosted.org/BucketCache/>`__!
 
+.. |Build Status| image:: http://img.shields.io/travis/RazerM/bucketcache.svg?style=flat-square
+   :target: https://travis-ci.org/RazerM/bucketcache
 .. |PyPI Version| image:: http://img.shields.io/pypi/v/bucketcache.svg?style=flat-square
    :target: https://pypi.python.org/pypi/bucketcache/
 .. |Python Version| image:: https://img.shields.io/badge/python-2.7%2C%203-brightgreen.svg?style=flat-square
