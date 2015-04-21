@@ -274,14 +274,14 @@ class Bucket(Container, object):
             # We've been passed f as a standard decorator. Instantiate cached
             # function class and return the decorator.
             cf = CachedFunction(bucket=self, method=method, nocache=nocache)
-            return cf.decorator(f)
+            return cf.decorate(f)
         else:
             # We've been called with decorator arguments, so we need to return
             # a function that makes a decorator.
             cf = CachedFunction(bucket=self, method=method, nocache=nocache)
 
             def make_decorator(f):
-                return cf.decorator(f)
+                return cf.decorate(f)
 
             return make_decorator
 

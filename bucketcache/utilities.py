@@ -6,6 +6,8 @@ import sys
 import weakref
 from functools import partial, wraps
 
+from decorator import decorator as decorator
+
 from .compat.contextlib import suppress
 from .exceptions import KeyInvalidError
 from .logging import logger
@@ -26,7 +28,7 @@ class CachedFunction(object):
         self.callback = callback
         self.fref = None
 
-    def decorator(self, f):
+    def decorate(self, f):
         # Try and use getargspec() first so that cache will work on source
         # compatible with Python 2 and 3.
         try:
@@ -46,7 +48,7 @@ class CachedFunction(object):
 
         self.fref = weakref.ref(f)
 
-        def core_wrapper(key_hash, *varargs, **callargs):
+        def load_or_call(f, key_hash, *varargs, **callargs):
             skip_cache = False
             if self.nocache:
                 skip_cache = callargs[self.nocache]
@@ -80,63 +82,44 @@ class CachedFunction(object):
 
             return result, called
 
-        if self.method:
-            @wraps(f)
-            def method_wrapper(*args, **kwargs):
+        def wrapper(f, *args, **kwargs):
+            print(args, kwargs)
+            varargs, callargs = normalize_args(f, *args, **kwargs)
+            sigcallargs = callargs.copy()
+
+            # Delete nocache parameter from call arg used for signature.
+            if self.nocache:
+                del sigcallargs[self.nocache]
+
+            if self.method:
                 instance = args[0]
-                varargs, callargs = normalize_args(f, *args, **kwargs)
-                sigcallargs = callargs.copy()
                 # Delete instance parameter from call arg used for signature.
                 del sigcallargs[argspec.args[0]]
-                # Delete nocache parameter from call arg used for signature.
-                if self.nocache:
-                    del sigcallargs[self.nocache]
 
                 signature = (instance.__dict__, fsig, varargs, sigcallargs)
-                # Make key_hash before and after function call, and raise error
-                # if any variables are modified.
-                key_hash = self.bucket._hash_for_key(signature)
-                ret, called = core_wrapper(key_hash, *varargs, **callargs)
-
-                if called:
-                    post_key_hash = self.bucket._hash_for_key(signature)
-                    if key_hash != post_key_hash:
-                        raise ValueError(
-                            "modification of input parameters by "
-                            "function '{}' cannot be cached.".format(f.__name__))
-
-                return ret
-
-            method_wrapper.callback = self.add_callback
-            return method_wrapper
-        else:
-            @wraps(f)
-            def func_wrapper(*args, **kwargs):
-                varargs, callargs = normalize_args(f, *args, **kwargs)
-                # Delete nocache parameter from call arg used for signature.
-                if self.nocache:
-                    sigcallargs = callargs.copy()
-                    del sigcallargs[self.nocache]
-                else:
-                    sigcallargs = callargs
-
+            else:
                 signature = (fsig, varargs, sigcallargs)
-                # Make key_hash before and after function call, and raise error
-                # if any variables are modified.
-                key_hash = self.bucket._hash_for_key(signature)
-                ret, called = core_wrapper(key_hash, *varargs, **callargs)
 
-                if called:
-                    post_key_hash = self.bucket._hash_for_key(signature)
-                    if key_hash != post_key_hash:
-                        raise ValueError(
-                            "modification of input parameters by "
-                            "function '{}' cannot be cached.".format(f.__name__))
+            # Make key_hash before function call, and raise error
+            # if state changes (hash is different) afterwards.
+            key_hash = self.bucket._hash_for_key(signature)
+            ret, called = load_or_call(f, key_hash, *varargs, **callargs)
 
-                return ret
+            if called:
+                post_key_hash = self.bucket._hash_for_key(signature)
+                if key_hash != post_key_hash:
+                    optional = ''
+                    if self.method:
+                        optional = ' or instance state'
+                    raise ValueError(
+                        "modification of input parameters{} by function"
+                        " '{}' cannot be cached.".format(optional, f.__name__))
 
-            func_wrapper.callback = self.add_callback
-            return func_wrapper
+            return ret
+
+        new_function = decorator(wrapper, f)
+        new_function.callback = self.add_callback
+        return new_function
 
     def add_callback(self, f):
         """Magic method assigned to f.callback that allows a callback to be
@@ -153,7 +136,7 @@ class CachedFunction(object):
         In the event that a cached result is used, the callback is fired.
         """
         self.callback = f
-        return self.decorator(self.fref())
+        return self.decorate(self.fref())
 
 
 class _HashJSONEncoder(json.JSONEncoder):

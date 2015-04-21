@@ -16,7 +16,8 @@ DESCRIPTION = metadata['description']
 
 AUTHOR, EMAIL = re.match(r'(.*) <(.*)>', AUTHOR_EMAIL).groups()
 
-requires = ['boltons', 'logbook', 'python-dateutil', 'represent', 'six']
+requires = ['boltons', 'decorator', 'logbook', 'python-dateutil', 'represent',
+            'six']
 if sys.version_info[:2] < (3, 4):
     requires.append('pathlib')
 
