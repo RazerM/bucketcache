@@ -16,9 +16,30 @@ DESCRIPTION = metadata['description']
 
 AUTHOR, EMAIL = re.match(r'(.*) <(.*)>', AUTHOR_EMAIL).groups()
 
-requires = ['represent', 'six']
+requires = ['boltons', 'logbook', 'python-dateutil', 'represent', 'six']
 if sys.version_info[:2] < (3, 4):
     requires.append('pathlib')
+
+extras_require = {}
+extras_require.update(
+    test=[
+        'msgpack-python',
+        'pytest',
+        'pytest-benchmark',
+        'pytest-cov',
+        'pytest-xdist',
+    ])
+
+if sys.version_info < (3, 3):
+    extras_require['test'].append('mock')
+
+extras_require.update(
+    dev=[
+        'clint',
+        'packaging',
+        'shovel',
+        'sphinx',
+    ] + extras_require['test'])
 
 
 class PyTest(Command):
@@ -54,4 +75,5 @@ setup(
         'Programming Language :: Python :: 3',
     ],
     license=LICENSE,
-    install_requires=requires)
+    install_requires=requires,
+    extras_require=extras_require)
