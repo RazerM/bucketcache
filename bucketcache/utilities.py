@@ -27,8 +27,19 @@ class CachedFunction(object):
         self.nocache = nocache
         self.callback = callback
         self.fref = None
+        self.property = False
 
     def decorate(self, f):
+
+        if isinstance(f, property):
+            f = f.fget
+            self.property = True
+            # method=True can be excluded when decorating a property because
+            # it's detectable. Set it now.
+            self.method = True
+
+        self.fref = weakref.ref(f)
+
         # Try and use getargspec() first so that cache will work on source
         # compatible with Python 2 and 3.
         try:
@@ -46,7 +57,6 @@ class CachedFunction(object):
 
         fsig = (f.__name__, argspec._asdict())
 
-        self.fref = weakref.ref(f)
 
         def load_or_call(f, key_hash, *varargs, **callargs):
             skip_cache = False
@@ -119,6 +129,8 @@ class CachedFunction(object):
 
         new_function = decorator(wrapper, f)
         new_function.callback = self.add_callback
+        if self.property:
+            new_function = property(new_function)
         return new_function
 
     def add_callback(self, f):

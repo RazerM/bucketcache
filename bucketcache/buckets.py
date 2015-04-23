@@ -250,7 +250,10 @@ class Bucket(Container, object):
         if len(args) == 1:
             # Positional arg must be the to-be-wrapped function.
             f = args[0]
-            if not callable(f):
+
+            # Allow method=True to be omitted when decorating properties, as
+            # this can be detected.
+            if not callable(f) and not isinstance(f, property):
                 raise ValueError(error)
         elif len(args) > 1:
             raise TypeError(error)

@@ -212,6 +212,80 @@ def test_corruption(cache_all):
         cache[key]
 
 
+def test_property(cache_all):
+    """Ensure decorator works with properties"""
+    cache = cache_all
+
+    global foo_calls, bar_calls, spam_calls, eggs_calls
+    foo_calls = bar_calls = spam_calls = eggs_calls = 0
+    global eggs_callback_called
+    eggs_callback_called = False
+
+    class A(object):
+        # Decorate a property with explicit method=True
+        @cache(method=True)
+        @property
+        def foo(self):
+            global foo_calls
+            foo_calls += 1
+            return 'foo'
+
+        # Make cached method a property
+        @property
+        @cache(method=True)
+        def bar(self):
+            global bar_calls
+            bar_calls += 1
+            return 'bar'
+
+        # Decorate a property with implicit method=True
+        @cache
+        @property
+        def spam(self):
+            global spam_calls
+            spam_calls += 1
+            return 'spam'
+
+        # To use callback with property, set up method first.
+        @cache(method=True)
+        def eggs(self):
+            global eggs_calls
+            eggs_calls += 1
+            return 'eggs'
+
+        @eggs.callback
+        def eggs(self, varargs, callargs, return_value, expiration_date):
+            global eggs_callback_called
+            eggs_callback_called = True
+
+        # Now make property.
+        eggs = property(eggs)
+
+        # Alternatively, eggs could be set up with a property decorator, then
+        # @eggs.fget.callback used to create the callback method.
+
+    a = A()
+    assert a.foo == 'foo'
+    assert foo_calls == 1
+    assert a.foo == 'foo'
+    assert foo_calls == 1
+
+    assert a.bar == 'bar'
+    assert bar_calls == 1
+    assert a.bar == 'bar'
+    assert bar_calls == 1
+
+    assert a.spam == 'spam'
+    assert spam_calls == 1
+    assert a.spam == 'spam'
+    assert spam_calls == 1
+
+    assert a.eggs == 'eggs'
+    assert eggs_calls == 1
+    assert not eggs_callback_called
+    assert a.eggs == 'eggs'
+    assert eggs_calls == 1
+    assert eggs_callback_called
 def test_decorator(cache_all):
     """Ensure decorator caching works."""
     cache = cache_all
