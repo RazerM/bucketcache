@@ -1,5 +1,6 @@
 from __future__ import absolute_import, division
 
+import inspect
 import random
 import sys
 import textwrap
@@ -286,6 +287,32 @@ def test_property(cache_all):
     assert a.eggs == 'eggs'
     assert eggs_calls == 1
     assert eggs_callback_called
+
+
+def test_introspection(cache_all):
+    """Ensure decorator preserves function attributes and argspec."""
+    cache = cache_all
+
+    def foo(a, b, c=5, *args, **kwargs):
+        """eggs"""
+
+    wrapped = cache(foo)
+
+    from functools import WRAPPER_ASSIGNMENTS
+    for attr in WRAPPER_ASSIGNMENTS:
+        if attr == '__qualname__':
+            # This is not updated by decorator.decorator. Needs investigation.
+            continue
+        assert getattr(foo, attr) == getattr(wrapped, attr), attr
+
+    try:
+        getargspec = inspect.getfullargspec
+    except AttributeError:
+        getargspec = inspect.getargspec
+
+    assert getargspec(foo) == getargspec(wrapped)
+
+
 def test_decorator(cache_all):
     """Ensure decorator caching works."""
     cache = cache_all
@@ -298,6 +325,7 @@ def test_decorator(cache_all):
     add1.non_cached_calls = 0
 
     assert add1(1) == 2
+    assert add1.non_cached_calls == 1
     assert add1(1) == 2
     assert add1(a=1) == 2
     assert add1.non_cached_calls == 1
