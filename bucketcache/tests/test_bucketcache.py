@@ -255,7 +255,7 @@ def test_property(cache_all):
             return 'eggs'
 
         @eggs.callback
-        def eggs(self, varargs, callargs, return_value, expiration_date):
+        def eggs(self, callinfo):
             global eggs_callback_called
             eggs_callback_called = True
 
@@ -690,7 +690,7 @@ def test_decorator_callback(cache_all):
     callback_flag = False
 
     @fun.callback
-    def fun(varargs, callargs, return_value, expiration_date):
+    def fun(callinfo):
         global callback_flag
         callback_flag = True
 
@@ -713,7 +713,7 @@ def test_decorator_callback(cache_all):
             return self.a + self.b + self.c + self.d + extra
 
         @sum.callback
-        def sum(self, varargs, callargs, return_value, expiration_date):
+        def sum(self, callinfo):
             global callback_flag
             callback_flag = True
 

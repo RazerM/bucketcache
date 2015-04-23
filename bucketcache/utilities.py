@@ -4,6 +4,7 @@ import inspect
 import json
 import sys
 import weakref
+from collections import namedtuple
 from functools import partial, wraps
 
 from decorator import decorator as decorator
@@ -13,6 +14,11 @@ from .exceptions import KeyInvalidError
 from .logging import logger
 
 __all__ = ()
+
+
+CachedCallInfo = namedtuple(
+    'CachedCallInfo',
+    ['varargs', 'callargs', 'return_value', 'expiration_date'])
 
 
 class CachedFunction(object):
@@ -82,18 +88,17 @@ class CachedFunction(object):
                     called = True
                 else:
                     if self.callback:
+                        callinfo = CachedCallInfo(varargs, callargs, result,
+                                                  obj.expiration_date)
                         if self.method:
                             instance = callargs[argspec.args[0]]
-                            self.callback(instance, varargs, callargs, result,
-                                          obj.expiration_date)
+                            self.callback(instance, callinfo)
                         else:
-                            self.callback(varargs, callargs, result,
-                                          obj.expiration_date)
+                            self.callback(callinfo)
 
             return result, called
 
         def wrapper(f, *args, **kwargs):
-            print(args, kwargs)
             varargs, callargs = normalize_args(f, *args, **kwargs)
             sigcallargs = callargs.copy()
 
