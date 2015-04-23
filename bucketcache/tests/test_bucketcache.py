@@ -115,7 +115,7 @@ def test_complex_keys(cache_all):
 
     complex_keys = [
         CustomObject('hello', [1, 2, 3], {'this': 'that'}),
-        range(1, 100),
+        datetime.utcnow(),
     ]
 
     for complex_key in complex_keys:
