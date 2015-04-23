@@ -151,7 +151,6 @@ def test_complex_values(cache_serializable):
     complex_values = [
         CustomObject('hello', [1, 2, 3], {'this': 'that'}),
         datetime.utcnow(),
-        range(1, 100),
     ]
 
     for i, complex_value in enumerate(complex_values):
