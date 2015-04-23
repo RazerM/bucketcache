@@ -313,6 +313,79 @@ def test_introspection(cache_all):
     assert getargspec(foo) == getargspec(wrapped)
 
 
+def test_decorator_ignore(cache_all):
+    cache = cache_all
+
+    global num_called
+    num_called = 0
+
+    @cache(ignore=['message'])
+    def foo(a, b, message):
+        global num_called
+        num_called += 1
+        return a + b
+
+    assert foo(1, 2, 'message') == 3
+    assert num_called == 1
+    assert foo(1, 2, 'different message') == 3
+    assert num_called == 1
+    assert foo(1, 1, 'different message') == 2
+    assert num_called == 2
+
+    num_called = 0
+
+    @cache(ignore=['args'])
+    def bar(a, b, *args):
+        global num_called
+        num_called += 1
+        return a + b
+
+    assert bar(1, 2) == 3
+    assert num_called == 1
+    assert bar(1, 2, 'a') == 3
+    assert bar(1, 2, 'b') == 3
+    assert bar(1, 2, 'b', 'c') == 3
+    assert num_called == 1
+    assert bar(2, 2, 'b', 'c') == 4
+    assert num_called == 2
+
+    num_called = 0
+
+    @cache(ignore=['kwargs'])
+    def spam(a, b, **kwargs):
+        global num_called
+        num_called += 1
+        return a + b
+
+    assert spam(1, 2) == 3
+    assert num_called == 1
+    assert spam(1, 2, c='a') == 3
+    assert spam(1, 2, c='b') == 3
+    assert spam(1, 2, c='b', d='c') == 3
+    assert num_called == 1
+    assert spam(2, 2, c='b', d='c') == 4
+    assert num_called == 2
+
+    num_called = 0
+
+    @cache(ignore=['args', 'kwargs'])
+    def eggs(a, b, *args, **kwargs):
+        global num_called
+        num_called += 1
+        return a + b
+
+    assert eggs(1, 2) == 3
+    assert num_called == 1
+    assert eggs(1, 2, c='a') == 3
+    assert eggs(1, 2, c='b') == 3
+    assert eggs(1, 2, c='b', d='c') == 3
+    assert eggs(1, 2, 'b', d='c') == 3
+    assert eggs(1, 2, 'c', d='c') == 3
+    assert num_called == 1
+    assert eggs(2, 2, c='b', d='c') == 4
+    assert num_called == 2
+
+
 def test_decorator(cache_all):
     """Ensure decorator caching works."""
     cache = cache_all

@@ -5,6 +5,7 @@ import json
 import sys
 import weakref
 from collections import namedtuple
+from copy import copy
 from functools import partial, wraps
 
 from decorator import decorator as decorator
@@ -16,9 +17,23 @@ from .logging import logger
 __all__ = ()
 
 
+FullArgSpec = namedtuple(
+    'FullArgSpec',
+    ['args', 'varargs', 'varkw', 'defaults', 'kwonlyargs', 'kwonlydefaults',
+     'annotations'])
+
+NormalizedArgs = namedtuple(
+    'NormalizedArgs',
+    ['varargs', 'normargs', 'callargs'])
+
 CachedCallInfo = namedtuple(
     'CachedCallInfo',
     ['varargs', 'callargs', 'return_value', 'expiration_date'])
+
+
+def _fullargspec_from_argspec(argspec):
+    return FullArgSpec(
+        *argspec, kwonlyargs=[], kwonlydefaults=None, annotations={})
 
 
 class CachedFunction(object):
@@ -27,13 +42,17 @@ class CachedFunction(object):
     The decorator function is returned because using a class breaks
     help(instance). See http://stackoverflow.com/a/25973438/2093785
     """
-    def __init__(self, bucket, method=False, nocache=None, callback=None):
+    def __init__(self, bucket, method=False, nocache=None, callback=None, ignore=None):
         self.bucket = bucket
         self.method = method
         self.nocache = nocache
         self.callback = callback
         self.fref = None
         self.property = False
+
+        if ignore is None:
+            ignore = ()
+        self.ignore = ignore
 
     def decorate(self, f):
 
@@ -50,6 +69,7 @@ class CachedFunction(object):
         # compatible with Python 2 and 3.
         try:
             argspec = inspect.getargspec(f)
+            argspec = _fullargspec_from_argspec(argspec)
             all_args = set(argspec.args)
         except ValueError:
             argspec = inspect.getfullargspec(f)
@@ -61,16 +81,34 @@ class CachedFunction(object):
                 raise TypeError("nocache decorator argument '{}'"
                                 "missing from argspec.".format(self.nocache))
 
+        test_set = set(self.ignore)
+
+        # *args and **kwargs can be ignored too
+        if argspec.varargs in self.ignore:
+            test_set -= set([argspec.varargs])
+        if argspec.varkw in self.ignore:
+            test_set -= set([argspec.varkw])
+
+        _raise_invalid_keys(all_args, test_set,
+                            message='parameter{s} cannot be ignored if not '
+                                    'present in argspec: {keys}')
+
         fsig = (f.__name__, argspec._asdict())
 
+        def load_or_call(f, key_hash, args, kwargs, varargs, callargs):
+            """Load function result from cache, or call function and cache
+            result.
 
-        def load_or_call(f, key_hash, *varargs, **callargs):
+            args and kwargs are used to call original function.
+
+            varargs and callargs are used to call callback.
+            """
             skip_cache = False
             if self.nocache:
                 skip_cache = callargs[self.nocache]
 
             def call_and_cache():
-                res = f(*varargs, **callargs)
+                res = f(*args, **kwargs)
                 obj = self.bucket._update_or_make_obj_with_hash(key_hash, res)
                 self.bucket._set_obj_with_hash(key_hash, obj)
                 return res
@@ -99,26 +137,37 @@ class CachedFunction(object):
             return result, called
 
         def wrapper(f, *args, **kwargs):
-            varargs, callargs = normalize_args(f, *args, **kwargs)
-            sigcallargs = callargs.copy()
+            normalized_args = normalize_args(f, *args, **kwargs)
+            varargs, normargs, callargs = normalized_args
+            sig_normargs = normargs.copy()
+            sig_varargs = copy(varargs)
 
             # Delete nocache parameter from call arg used for signature.
             if self.nocache:
-                del sigcallargs[self.nocache]
+                del sig_normargs[self.nocache]
+
+            for arg in self.ignore:
+                if arg == argspec.varargs:
+                    sig_varargs = ()
+                elif arg == argspec.varkw:
+                    for kwarg in callargs[argspec.varkw]:
+                        del sig_normargs[kwarg]
+                else:
+                    del sig_normargs[arg]
 
             if self.method:
                 instance = args[0]
                 # Delete instance parameter from call arg used for signature.
-                del sigcallargs[argspec.args[0]]
+                del sig_normargs[argspec.args[0]]
 
-                signature = (instance.__dict__, fsig, varargs, sigcallargs)
+                signature = (instance.__dict__, fsig, sig_varargs, sig_normargs)
             else:
-                signature = (fsig, varargs, sigcallargs)
+                signature = (fsig, sig_varargs, sig_normargs)
 
             # Make key_hash before function call, and raise error
             # if state changes (hash is different) afterwards.
             key_hash = self.bucket._hash_for_key(signature)
-            ret, called = load_or_call(f, key_hash, *varargs, **callargs)
+            ret, called = load_or_call(f, key_hash, args, kwargs, varargs, callargs)
 
             if called:
                 post_key_hash = self.bucket._hash_for_key(signature)
@@ -187,16 +236,15 @@ def normalize_args(f, *args, **kwargs):
     args can only be non-empty if there is `*args` in the argument specification.
     """
     callargs = inspect.getcallargs(f, *args, **kwargs)
+    original_callargs = callargs.copy()
     try:
         argspec = inspect.getargspec(f)
     except ValueError:
         argspec = inspect.getfullargspec(f)
+    else:
+        argspec = _fullargspec_from_argspec(argspec)
 
-    if hasattr(argspec, 'keywords'):
-        if argspec.keywords:
-            kwargs = callargs.pop(argspec.keywords, {})
-            callargs.update(kwargs)
-    elif hasattr(argspec, 'varkw'):
+    if hasattr(argspec, 'varkw'):
         if argspec.varkw:
             kwargs = callargs.pop(argspec.varkw, {})
             callargs.update(kwargs)
@@ -206,9 +254,11 @@ def normalize_args(f, *args, **kwargs):
     else:
         varargs = ()
 
-    # now callargs is kwargs
+    # now callargs is all keywords
 
-    return varargs, callargs
+    return NormalizedArgs(varargs=varargs,
+                          normargs=callargs,
+                          callargs=original_callargs)
 
 
 def _raise_invalid_keys(valid_keys, passed_keys, message=None):

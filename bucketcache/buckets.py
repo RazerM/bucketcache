@@ -237,7 +237,7 @@ class Bucket(Container, object):
                 ...
         """
         f = None
-        default_kwargs = {'method': False, 'nocache': None}
+        default_kwargs = {'method': False, 'nocache': None, 'ignore': None}
 
         error = ('To use an instance of {}() as a decorator, '
                  'use @bucket or @bucket(<args>) '
@@ -272,16 +272,19 @@ class Bucket(Container, object):
         kwargs.update({k: default_kwargs[k] for k in missing_kwargs})
         method = kwargs['method']
         nocache = kwargs['nocache']
+        ignore = kwargs['ignore']
 
         if f:
             # We've been passed f as a standard decorator. Instantiate cached
             # function class and return the decorator.
-            cf = CachedFunction(bucket=self, method=method, nocache=nocache)
+            cf = CachedFunction(bucket=self, method=method, nocache=nocache,
+                                ignore=ignore)
             return cf.decorate(f)
         else:
             # We've been called with decorator arguments, so we need to return
             # a function that makes a decorator.
-            cf = CachedFunction(bucket=self, method=method, nocache=nocache)
+            cf = CachedFunction(bucket=self, method=method, nocache=nocache,
+                                ignore=ignore)
 
             def make_decorator(f):
                 return cf.decorate(f)
