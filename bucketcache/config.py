@@ -17,6 +17,9 @@ __all__ = (
 
 class BackendConfig(object):
     def __init__(self, ordered_args, allow_unordered=False):
+        # The aim here is that by default, subclasses pass along their
+        # arguments in the same order as their __init__. That way, the __repr__
+        # will match positionally with the __init__.
         if not allow_unordered:
             try:
                 argspec = inspect.getfullargspec(self.__init__)
