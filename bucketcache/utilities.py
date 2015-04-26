@@ -42,7 +42,8 @@ class CachedFunction(object):
     The decorator function is returned because using a class breaks
     help(instance). See http://stackoverflow.com/a/25973438/2093785
     """
-    def __init__(self, bucket, method=False, nocache=None, callback=None, ignore=None):
+    def __init__(self, bucket, method=False, nocache=None, callback=None,
+                 ignore=None):
         self.bucket = bucket
         self.method = method
         self.nocache = nocache
@@ -108,6 +109,7 @@ class CachedFunction(object):
                 skip_cache = callargs[self.nocache]
 
             def call_and_cache():
+                logger.info('Calling function {}', f)
                 res = f(*args, **kwargs)
                 obj = self.bucket._update_or_make_obj_with_hash(key_hash, res)
                 self.bucket._set_obj_with_hash(key_hash, obj)
@@ -125,6 +127,7 @@ class CachedFunction(object):
                     result = call_and_cache()
                     called = True
                 else:
+                    logger.info('Function call loaded from cache: {}', f)
                     if self.callback:
                         callinfo = CachedCallInfo(varargs, callargs, result,
                                                   obj.expiration_date)
