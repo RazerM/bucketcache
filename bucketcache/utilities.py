@@ -160,7 +160,9 @@ class CachedFunction(object):
                 # Delete instance parameter from call arg used for signature.
                 del sig_normargs[argspec.args[0]]
 
-                signature = (instance.__dict__, fsig, sig_varargs, sig_normargs)
+                sig_instance = get_instance_signature(instance)
+
+                signature = (sig_instance, fsig, sig_varargs, sig_normargs)
             else:
                 signature = (fsig, sig_varargs, sig_normargs)
 
@@ -229,11 +231,28 @@ class _HashJSONEncoder(json.JSONEncoder):
         return repr(o)
 
 
+def get_instance_signature(instance):
+    """Get state of instance for cache signature (as part of key).
+
+    Attempts to get state will be done in this order:
+
+    - instance._getsate_bucketcache_()
+    - instance.__getstate__()
+    - instance.__dict__
+    """
+    with suppress(AttributeError):
+        return instance._getsate_bucketcache_()
+
+    with suppress(AttributeError):
+        return instance.__getstate__()
+
+    return instance.__dict__
+
+
 def normalize_args(f, *args, **kwargs):
     """Normalize call arguments into keyword form and varargs.
 
-    Returns (args, kwargs).
-    args can only be non-empty if there is `*args` in the argument specification.
+    args can only be non-empty if there is *args in the argument specification.
     """
     callargs = inspect.getcallargs(f, *args, **kwargs)
     original_callargs = callargs.copy()
