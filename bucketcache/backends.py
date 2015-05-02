@@ -104,7 +104,8 @@ class PickleBackend(Backend):
 
         if six.PY3:
             dconfig = config.asdict()
-            keys = ('fix_imports', 'encogding', 'errors')
+            keys = ('fix_imports', 'encoding', 'errors')
+            assert set(keys) <= set(dconfig)
             kwargs = {k: v for k, v in six.iteritems(dconfig) if k in keys}
         else:
             kwargs = dict()
@@ -121,6 +122,7 @@ class PickleBackend(Backend):
         if six.PY3:
             dconfig = self.config.asdict()
             keys = ('protocol', 'fix_imports')
+            assert set(keys) <= set(dconfig)
             kwargs = {k: v for k, v in six.iteritems(dconfig) if k in keys}
             pickle.dump(data, fp, **kwargs)
         else:
@@ -128,6 +130,7 @@ class PickleBackend(Backend):
 
 
 class JSONBackend(Backend):
+    """Backend that stores objects using JSON."""
     binary_format = False
     default_config = JSONConfig
     file_extension = 'json'
@@ -139,6 +142,7 @@ class JSONBackend(Backend):
         dconfig = config.asdict()
         keys = ('object_hook', 'parse_float', 'parse_int',
                 'parse_constant', 'object_pairs_hook')
+        assert set(keys) <= set(dconfig)
         kwargs = {k: v for k, v in six.iteritems(dconfig) if k in keys}
         kwargs['cls'] = dconfig['decoder_cls']
 
@@ -162,6 +166,7 @@ class JSONBackend(Backend):
         dconfig = self.config.asdict()
         keys = ('skipkeys', 'ensure_ascii', 'check_circular', 'allow_nan',
                 'indent', 'separators', 'default', 'sort_keys')
+        assert set(keys) <= set(dconfig)
         kwargs = {k: v for k, v in six.iteritems(dconfig) if k in keys}
         kwargs['cls'] = dconfig['encoder_cls']
 
@@ -186,6 +191,7 @@ class MessagePackBackend(Backend):
 
         dconfig = config.asdict()
         keys = ('object_hook', 'list_hook', 'use_list', 'object_pairs_hook')
+        assert set(keys) <= set(dconfig)
         kwargs = {k: v for k, v in six.iteritems(dconfig) if k in keys}
         kwargs['encoding'] = dconfig['unpack_encoding']
 
@@ -211,6 +217,7 @@ class MessagePackBackend(Backend):
         dconfig = self.config.asdict()
         keys = ('default', 'unicode_errors', 'use_single_float', 'autoreset',
                 'use_bin_type')
+        assert set(keys) <= set(dconfig)
         kwargs = {k: v for k, v in six.iteritems(dconfig) if k in keys}
         kwargs['encoding'] = dconfig['pack_encoding']
 
