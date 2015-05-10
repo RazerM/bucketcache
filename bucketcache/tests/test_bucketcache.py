@@ -4,15 +4,13 @@ from datetime import datetime, timedelta
 from time import sleep
 
 import pytest
-from represent import RepresentationMixin
 
 from bucketcache import Bucket, deferred_write, DeferredWriteBucket
-from bucketcache.backends import (
-    Backend, MessagePackBackend, PickleBackend)
+from bucketcache.backends import Backend, MessagePackBackend, PickleBackend
 from bucketcache.config import PickleConfig
-from common import (
-    cache_all, cache_serializable, deferred_cache_all, expiring_cache_all,
-    requires_python_version, slow)
+
+from . import (
+    cache_all, cache_serializable, deferred_cache_all, expiring_cache_all, slow)
 
 try:
     from unittest.mock import patch
@@ -20,13 +18,11 @@ except ImportError:
     from mock import patch
 
 
-class CustomObject(RepresentationMixin, object):
+class CustomObject(object):
     def __init__(self, here, be, parameters):
         self.here = here
         self.be = be
         self.parameters = parameters
-
-        super(CustomObject, self).__init__()
 
     def __eq__(self, other):
         return self.__dict__ == other.__dict__
@@ -96,6 +92,54 @@ def test_complex_keys(cache_all):
     long_missing_key = list(range(1000))
     with pytest.raises(KeyError):
         cache[long_missing_key]
+
+
+def test_default_keymaker(cache_all):
+    """Test some basic assumptions of DefaultKeyMaker"""
+    cache = cache_all
+
+    class A(object):
+        """Test __getstate__ is called"""
+        def __init__(self, a, b):
+            self.a = a
+            self.b = b
+
+        def __getstate__(self):
+            return 'getstate'
+
+    class B(object):
+        """Test classes with __slots__"""
+        __slots__ = ('a', 'b', 'c')
+
+        def __init__(self, a, b):
+            self.a = a
+            self.b = b
+
+    class C(object):
+        """Test __dict__ is used normally."""
+        def __init__(self, a, b):
+            self.a = a
+            self.b = b
+
+    class D(object):
+        """Test classes with __slots__ still use __getstate__"""
+        __slots__ = ('a', 'b', 'c')
+
+        def __init__(self, a, b):
+            self.a = a
+            self.b = b
+
+        def __getstate__(self):
+            return 'getstate'
+
+    a = A(1, 2)
+    b = B(1, 2)
+    c = C(1, 2)
+    d = D(1, 2)
+    assert cache.keymaker.make_key(a) == b'"getstate"'
+    assert cache.keymaker.make_key(b) == b'{"a": 1, "b": 2}'
+    assert cache.keymaker.make_key(c) == b'{"a": 1, "b": 2}'
+    assert cache.keymaker.make_key(d) == b'"getstate"'
 
 
 def test_unknown_load_error(tmpdir):
@@ -274,7 +318,7 @@ def test_deferred_set(deferred_cache_all):
     assert path.exists()
 
     # Verify that new cache can load key from file.
-    newcache = DeferredWriteBucket(path=cache.path, backend=cache.backend)
+    newcache = DeferredWriteBucket(path=cache._path, backend=cache.backend)
     assert newcache[key] == 'this'
 
     # Check updating value works

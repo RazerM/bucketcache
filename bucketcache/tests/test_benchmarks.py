@@ -5,12 +5,8 @@ import random
 import pytest
 
 from bucketcache import deferred_write
-from common import slow
 
-try:
-    from unittest.mock import patch
-except ImportError:
-    from mock import patch
+from . import cache_all, slow
 
 
 @slow

@@ -1,14 +1,15 @@
 from __future__ import absolute_import, division
 
 import inspect
+import sys
 import textwrap
 
 import pytest
 from six import exec_
 
 from bucketcache import DeferredWriteBucket
-from common import (
-    cache_all, deferred_cache_all, requires_python_version)
+
+from . import cache_all, deferred_cache_all, requires_python_version
 
 
 def test_methods(cache_all):
@@ -172,6 +173,7 @@ def test_decorator_callback(cache_all):
     assert thing.sum() == 10
     assert callback_flag
 
+
 def test_decorator_ignore(cache_all):
     cache = cache_all
 
@@ -321,7 +323,7 @@ def test_deferred_decorator(deferred_cache_all):
     cache.sync()
 
     # Verify that new cache can load key from file.
-    newcache = DeferredWriteBucket(path=cache.path, backend=cache.backend)
+    newcache = DeferredWriteBucket(path=cache._path, backend=cache.backend)
 
     @newcache
     def add1(a):
@@ -411,6 +413,8 @@ def test_property(cache_all):
     assert eggs_callback_called
 
 
+@pytest.mark.xfail(sys.version_info >= (3,),
+                   reason="decorator.decorator doesn't support __qualname__")
 def test_introspection(cache_all):
     """Ensure decorator preserves function attributes and argspec."""
     cache = cache_all
@@ -422,9 +426,6 @@ def test_introspection(cache_all):
 
     from functools import WRAPPER_ASSIGNMENTS
     for attr in WRAPPER_ASSIGNMENTS:
-        if attr == '__qualname__':
-            # This is not updated by decorator.decorator. Needs investigation.
-            continue
         assert getattr(foo, attr) == getattr(wrapped, attr), attr
 
     try:
