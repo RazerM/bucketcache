@@ -9,3 +9,5 @@ _build/
 dist/
 .idea
 .coverage
+.tox/
+htmlcov/
