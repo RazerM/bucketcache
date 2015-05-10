@@ -2,9 +2,11 @@
 Module Reference
 ****************
 
-bucketcache
-===========
+.. toctree::
+  :maxdepth: 2
 
-.. automodule:: bucketcache
-   :members:
-   :undoc-members:
+  modules/buckets
+  modules/backends
+  modules/config
+  modules/exceptions
+  modules/keymakers
