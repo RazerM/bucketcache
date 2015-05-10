@@ -6,12 +6,12 @@ from datetime import datetime
 
 import six
 from dateutil.parser import parse
-from represent import RepresentationMixin
+from represent import ReprMixin
 
 from .compat.abc import abstractclassmethod
 from .config import *
 from .exceptions import *
-from .utilities import _raise_invalid_keys, _raise_keys
+from .utilities import raise_invalid_keys, raise_keys
 
 try:
     import cPickle as pickle
@@ -32,7 +32,20 @@ __all__ = (
 
 
 @six.add_metaclass(ABCMeta)
-class Backend(RepresentationMixin, object):
+class Backend(ReprMixin, object):
+    """Abstract base class for backends.
+
+    Classes must implement abstract attributes:
+
+    - :py:attr:`binary_format`
+    - :py:attr:`default_config`
+    - :py:attr:`file_extension`
+
+    and abstract methods:
+
+    - :py:meth:`dump`
+    - :py:meth:`from_file`
+    """
     abstract_attributes = {'binary_format', 'default_config', 'file_extension'}
 
     def __init__(self, value, expiration_date=None, config=None):
@@ -46,7 +59,7 @@ class Backend(RepresentationMixin, object):
 
     @classmethod
     def check_concrete(cls, skip_methods=False):
-        """Very that we're a concrete class.
+        """Verify that we're a concrete class.
 
         Check that abstract methods have been overridden, and verify that
         abstract class attributes exist.
@@ -56,29 +69,34 @@ class Backend(RepresentationMixin, object):
         is created.
         """
         if not skip_methods and cls.__abstractmethods__:
-            _raise_keys(cls.__abstractmethods__, "Concrete class '{}' missing "
-                        "abstract method{{s}}: {{keys}}".format(cls.__name__))
+            raise_keys(cls.__abstractmethods__, "Concrete class '{}' missing "
+                       "abstract method{{s}}: {{keys}}".format(cls.__name__))
 
         missing = {name
                    for name in Backend.abstract_attributes
                    if not hasattr(cls, name)}
         if missing:
-            _raise_keys(missing, "Concrete class '{}' missing abstract"
-                        "attribute{{s}}: {{keys}}".format(cls.__name__))
+            raise_keys(missing, "Concrete class '{}' missing abstract"
+                       "attribute{{s}}: {{keys}}".format(cls.__name__))
 
     @classmethod
     def valid_config(cls, config):
+        """Verify passed config, or return `default_config`."""
         default_config = cls.default_config()
         if config is not None:
             valid_config = set(default_config.asdict())
             passed_config = set(config.asdict())
-            _raise_invalid_keys(valid_config, passed_config,
-                                'Invalid config parameter{s}: {keys}')
+            raise_invalid_keys(valid_config, passed_config,
+                               'Invalid config parameter{s}: {keys}')
             return config
         else:
             return default_config
 
     def has_expired(self):
+        """Determine if value held by this instance has expired.
+
+        Returns False if object does not expire.
+        """
         if self.expiration_date:
             return datetime.utcnow() > self.expiration_date
         else:
@@ -86,14 +104,46 @@ class Backend(RepresentationMixin, object):
 
     @abstractclassmethod
     def from_file(cls, fp, config=None):
+        """Class method for instantiating from file.
+
+        :param fp: File containing stored data.
+        :type fp: :py:term:`file-like object`
+        :param config: Configuration passed from
+                       :py:class:`~bucketcache.buckets.Bucket`
+        :type config: :py:class:`~bucketcache.config.Config`
+
+        .. note::
+
+           Implementations should ensure `config` is valid as follows:
+
+           .. code-block:: python
+
+              config = cls.valid_config(config)
+
+        .. warning::
+
+           If the appropriate data cannot be ready from `fp`, this method
+           should raise :py:exc:`~bucketcache.exceptions.CacheLoadError` to
+           inform :py:class:`~bucketcache.buckets.Bucket` that this cached file
+           cannot be used.
+        """
         raise NotImplementedError
 
     @abstractmethod
     def dump(self, fp):
+        """Called to save state to file.
+
+        :param fp: File to contain stored data.
+        :type fp: :py:term:`file-like object`
+
+        Attributes `value` and `expiration_date` should be saved, so that
+        :py:meth:`from_file` can use them.
+        """
         raise NotImplementedError
 
 
 class PickleBackend(Backend):
+    """Backend that serializes objects using Pickle."""
     binary_format = True
     default_config = PickleConfig
     file_extension = 'pickle'
@@ -144,7 +194,7 @@ class JSONBackend(Backend):
                 'parse_constant', 'object_pairs_hook')
         assert set(keys) <= set(dconfig)
         kwargs = {k: v for k, v in six.iteritems(dconfig) if k in keys}
-        kwargs['cls'] = dconfig['decoder_cls']
+        kwargs['cls'] = dconfig['load_cls']
 
         try:
             data = json.load(fp, **kwargs)
@@ -168,13 +218,14 @@ class JSONBackend(Backend):
                 'indent', 'separators', 'default', 'sort_keys')
         assert set(keys) <= set(dconfig)
         kwargs = {k: v for k, v in six.iteritems(dconfig) if k in keys}
-        kwargs['cls'] = dconfig['encoder_cls']
+        kwargs['cls'] = dconfig['dump_cls']
 
         data = {'value': self.value, 'expiration_date': expiration_date}
         json.dump(data, fp, **kwargs)
 
 
 class MessagePackBackend(Backend):
+    """Backend that stores objects using MessagePack."""
     binary_format = True
     default_config = MessagePackConfig
     file_extension = 'msgpack'

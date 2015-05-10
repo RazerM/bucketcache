@@ -10,15 +10,15 @@ from pathlib import Path
 
 import six
 from boltons.formatutils import DeferredValue as DV
-from represent import RepresentationHelper
+from represent import ReprHelper
 
 from .backends import Backend, PickleBackend
 from .compat.contextlib import suppress
 from .exceptions import (
     CacheLoadError, KeyExpirationError, KeyFileNotFoundError, KeyInvalidError)
-from .logging import logger, log_full_keys
-from .utilities import (
-    _hash_dumps, _raise_invalid_keys, CachedFunction, log_handled_exception)
+from .keymakers import DefaultKeyMaker
+from .log import log_full_keys, log_handled_exception, logger
+from .utilities import DecoratorFactory, raise_invalid_keys
 
 __all__ = ('Bucket', 'DeferredWriteBucket', 'deferred_write')
 
@@ -26,22 +26,30 @@ __all__ = ('Bucket', 'DeferredWriteBucket', 'deferred_write')
 class Bucket(Container, object):
     """Dictionary-like object backed by a file cache.
 
-    :param path: Directory for storing cached objects.
-    :param backend: Predefined or custom :py:class:`~bucketcache.Backend`
-                      . Default: :py:class:`bucketcache.PickleBackend`
-    :type backend: :py:class:`bucketcache.Backend`
-    :param kwargs: Arguments that will be passed to
-                   :py:class:`datetime.timedelta` to define
+    Parameters:
+        backend: Backend class. Default:
+                 :py:class:`~bucketcache.backends.PickleBackend`
+        path: Directory for storing cached objects.
+        config: `Config` instance for backend.
+        keymaker: `KeyMaker` instance for object -> key serialization.
+        lifetime: Key lifetime.
+        kwargs: Keyword arguments to pass to :py:class:`datetime.timedelta`
+                as shortcut for lifetime.
+
+    :type backend: :py:class:`~bucketcache.backends.Backend`
+    :type config: :py:class:`~bucketcache.config.Config`
+    :type keymaker: :py:class:`~bucketcache.keymakers.KeyMaker`
+    :type lifetime: :py:class:`~datetime.timedelta`
     """
 
-    def __init__(self, path, backend=None, config=None, lifetime=None, **kwargs):
-        self.path = Path(path)
+    def __init__(self, path, backend=None, config=None, keymaker=None,
+                 lifetime=None, **kwargs):
         if kwargs:
             valid_kwargs = {'days', 'seconds', 'microseconds', 'milliseconds',
                             'minutes', 'hours', 'weeks'}
             passed_kwargs = set(kwargs)
 
-            _raise_invalid_keys(valid_kwargs, passed_kwargs,
+            raise_invalid_keys(valid_kwargs, passed_kwargs,
                                 'Invalid lifetime argument{s}: {keys}')
 
             if lifetime:
@@ -53,28 +61,46 @@ class Bucket(Container, object):
         # Now we're thinking with portals.
         self._cache = dict()
 
+        self._path = Path(path)
+
         with suppress(OSError):
             self.path.mkdir()
         self.path.resolve()
 
-        if backend:
-            error = TypeError("'backend' must inherit from "
-                              "bucketcache.Backend")
-            if inspect.isclass(backend):
-                if not issubclass(backend, Backend):
-                    raise error
-            else:
-                raise error
-
-            backend.check_concrete()
-
+        if backend is not None:
             self.backend = backend
         else:
             self.backend = PickleBackend
 
         self.config = config
 
+        if keymaker is None:
+            keymaker = DefaultKeyMaker()
+
+        self.keymaker = keymaker
+
         self.lifetime = lifetime
+
+    @property
+    def path(self):
+        return self._path
+
+    @property
+    def backend(self):
+        return self._backend
+
+    @backend.setter
+    def backend(self, value):
+        error = TypeError("'backend' must inherit from "
+                          "bucketcache.Backend")
+        if inspect.isclass(value):
+            if not issubclass(value, Backend):
+                raise error
+        else:
+            raise error
+
+        value.check_concrete()
+        self._backend = value
 
     @property
     def lifetime(self):
@@ -106,11 +132,7 @@ class Bucket(Container, object):
         self._set_obj_with_hash(key_hash, obj)
 
     def setitem(self, key, value):
-        """Provide setitem method because it looks less weird when passing
-        some objects as keys.
-
-        .. seealso:: :py:meth:`__setitem__`
-        """
+        """Provide setitem method as alternative to ``bucket[key] = value``"""
         return self.__setitem__(key, value)
 
     def _update_or_make_obj_with_hash(self, key_hash, value):
@@ -136,11 +158,7 @@ class Bucket(Container, object):
         return obj.value
 
     def getitem(self, key):
-        """Provide setitem method because it looks less weird when passing
-        some objects as keys.
-
-        .. seealso:: :py:meth:`__getitem__`
-        """
+        """Provide getitem method as alternative to ``bucket[key]``."""
         return self.__getitem__(key)
 
     def _get_obj(self, key):
@@ -266,7 +284,7 @@ class Bucket(Container, object):
         valid_kwargs = set(default_kwargs)
         missing_kwargs = valid_kwargs - passed_kwargs
 
-        _raise_invalid_keys(valid_kwargs, passed_kwargs,
+        raise_invalid_keys(valid_kwargs, passed_kwargs,
                             'Invalid decorator argument{s}: {keys}')
 
         kwargs.update({k: default_kwargs[k] for k in missing_kwargs})
@@ -277,14 +295,14 @@ class Bucket(Container, object):
         if f:
             # We've been passed f as a standard decorator. Instantiate cached
             # function class and return the decorator.
-            cf = CachedFunction(bucket=self, method=method, nocache=nocache,
-                                ignore=ignore)
+            cf = DecoratorFactory(bucket=self, method=method, nocache=nocache,
+                                  ignore=ignore)
             return cf.decorate(f)
         else:
             # We've been called with decorator arguments, so we need to return
             # a function that makes a decorator.
-            cf = CachedFunction(bucket=self, method=method, nocache=nocache,
-                                ignore=ignore)
+            cf = DecoratorFactory(bucket=self, method=method, nocache=nocache,
+                                  ignore=ignore)
 
             def make_decorator(f):
                 return cf.decorate(f)
@@ -302,7 +320,7 @@ class Bucket(Container, object):
 
     def _path_for_hash(self, key_hash):
         filename = '{}.{}'.format(key_hash, self.backend.file_extension)
-        return self.path / filename
+        return self._path / filename
 
     def _hash_for_key(self, key):
         if log_full_keys:
@@ -311,11 +329,12 @@ class Bucket(Container, object):
             dkey = DV(lambda: self._abbreviate(key))
         logger.debug('_hash_for_key <{}>', dkey)
 
-        hash_str = self.backend.__name__ + _hash_dumps(key)
+        key_bytes = (self.backend.__name__.encode('utf-8') +
+                     self.keymaker.make_key(key))
 
         logger.debug('Done')
 
-        digest = md5(hash_str.encode('utf-8')).hexdigest()
+        digest = md5(key_bytes).hexdigest()
 
         return digest
 
@@ -352,23 +371,25 @@ class Bucket(Container, object):
                     r.keyword_with_value(attr, value)
 
     def __repr__(self):
-        r = RepresentationHelper(self)
+        r = ReprHelper(self)
         self._repr_helper(r)
         return str(r)
 
     def _repr_pretty_(self, p, cycle):
-        with PrettyRepresentationHelper(self, p, cycle) as r:
+        with PrettyReprHelper(self, p, cycle) as r:
             self._repr_helper(r)
 
 
 class DeferredWriteBucket(Bucket):
-
+    """Alternative implementation of :py:class:`~bucketcache.buckets.Bucket`
+    that defers writing to file until
+    :py:meth:`~bucketcache.buckets.DeferredWriteBucket.sync` is called.
+    """
     @classmethod
     def from_bucket(cls, bucket):
-        self = cls(path=bucket.path, backend=bucket.backend)
-        self.lifetime = bucket.lifetime
-        self.backend = bucket.backend
-        self.config = bucket.config
+        self = cls(path=bucket.path, backend=bucket.backend,
+                   config=bucket.config, keymaker=bucket.keymaker,
+                   lifetime=bucket.lifetime)
         self._cache = bucket._cache
         return self
 
@@ -377,13 +398,15 @@ class DeferredWriteBucket(Bucket):
         self._cache[key_hash] = obj
 
     def unload_key(self, key):
-        """Remove key from memory, leaving file in place."""
-        # Force sync to prevent data loss.
+        """Remove key from memory, leaving file in place.
+
+        This forces :py:meth:`~bucketcache.buckets.DeferredWriteBucket.sync`.
+        """
         self.sync()
         return super(DeferredWriteBucket, self).unload_key(key)
 
     def sync(self):
-        """This is where the deferred writes get committed to file."""
+        """Commit deferred writes to file."""
         for key_hash, obj in six.iteritems(self._cache):
             # Objects are checked for expiration in __getitem__,
             # but we can check here to avoid unnecessary writes.
@@ -395,6 +418,28 @@ class DeferredWriteBucket(Bucket):
 
 @contextmanager
 def deferred_write(bucket):
+    """Context manager for deferring writes of a :py:class:`Bucket` within a
+    block.
+
+    Parameters:
+        bucket (:py:class:`Bucket`): Bucket to defer writes for within context.
+
+    Returns:
+        Bucket to use within context.
+
+    :rtype: :py:class:`DeferredWriteBucket`
+
+    When the context is closed, the stored objects are written to file. The
+    in-memory cache of objects is used to update that of the original bucket.
+
+    .. code-block:: python
+
+       bucket = Bucket(path)
+
+       with deferred_write(bucket) as deferred:
+           deferred[key] = value
+           ...
+    """
     deferred_write_bucket = DeferredWriteBucket.from_bucket(bucket)
     yield deferred_write_bucket
     deferred_write_bucket.sync()

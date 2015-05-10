@@ -4,7 +4,7 @@ from .backends import *
 from .buckets import *
 from .config import *
 from .exceptions import *
-from .logging import log_full_keys, logger
+from .log import log_full_keys, logger
 from .utilities import *
 
 __all__ = (backends.__all__ + buckets.__all__ + config.__all__ +

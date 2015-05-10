@@ -12,7 +12,7 @@ from decorator import decorator as decorator
 
 from .compat.contextlib import suppress
 from .exceptions import KeyInvalidError
-from .logging import logger
+from .log import logger
 
 __all__ = ()
 
@@ -31,12 +31,12 @@ CachedCallInfo = namedtuple(
     ['varargs', 'callargs', 'return_value', 'expiration_date'])
 
 
-def _fullargspec_from_argspec(argspec):
+def fullargspec_from_argspec(argspec):
     return FullArgSpec(
         *argspec, kwonlyargs=[], kwonlydefaults=None, annotations={})
 
 
-class CachedFunction(object):
+class DecoratorFactory(object):
     """Produce decorator to wrap a function with a bucket.
 
     The decorator function is returned because using a class breaks
@@ -70,7 +70,7 @@ class CachedFunction(object):
         # compatible with Python 2 and 3.
         try:
             argspec = inspect.getargspec(f)
-            argspec = _fullargspec_from_argspec(argspec)
+            argspec = fullargspec_from_argspec(argspec)
             all_args = set(argspec.args)
         except ValueError:
             argspec = inspect.getfullargspec(f)
@@ -90,9 +90,9 @@ class CachedFunction(object):
         if argspec.varkw in self.ignore:
             test_set -= set([argspec.varkw])
 
-        _raise_invalid_keys(all_args, test_set,
-                            message='parameter{s} cannot be ignored if not '
-                                    'present in argspec: {keys}')
+        raise_invalid_keys(all_args, test_set,
+                           message='parameter{s} cannot be ignored if not '
+                                   'present in argspec: {keys}')
 
         fsig = (f.__name__, argspec._asdict())
 
@@ -210,30 +210,6 @@ class CachedFunction(object):
         return self.decorate(self.fref())
 
 
-class _HashJSONEncoder(json.JSONEncoder):
-    """Serialize objects that can't normally be serialized by json.
-
-    Attempts to get state will be done in this order:
-
-    - o.__getstate__()
-    - o.__dict__
-    - repr(o)
-
-    """
-
-    def default(self, o):
-        with suppress(TypeError):
-            return json.JSONEncoder.default(self, o)
-
-        with suppress(AttributeError):
-            return o.__getstate__()
-
-        with suppress(AttributeError):
-            return o.__dict__
-
-        return repr(o)
-
-
 def get_instance_signature(instance):
     """Get state of instance for cache signature (as part of key).
 
@@ -264,7 +240,7 @@ def normalize_args(f, *args, **kwargs):
     except ValueError:
         argspec = inspect.getfullargspec(f)
     else:
-        argspec = _fullargspec_from_argspec(argspec)
+        argspec = fullargspec_from_argspec(argspec)
 
     if hasattr(argspec, 'varkw'):
         if argspec.varkw:
@@ -283,23 +259,15 @@ def normalize_args(f, *args, **kwargs):
                           callargs=original_callargs)
 
 
-def _raise_invalid_keys(valid_keys, passed_keys, message=None):
+def raise_invalid_keys(valid_keys, passed_keys, message=None):
     if message is None:
         message = 'Invalid keyword argument{s}: {keys}'
     if not passed_keys <= valid_keys:
         invalid_keys = passed_keys - valid_keys
-        _raise_keys(invalid_keys, message=message)
+        raise_keys(invalid_keys, message=message)
 
 
-def _raise_keys(keys, message):
+def raise_keys(keys, message):
     invalid_str = ', '.join(keys)
     s = 's' if len(keys) > 1 else ''
     raise TypeError(message.format(s=s, keys=invalid_str))
-
-
-def log_handled_exception(message, *args, **kwargs):
-    logger.debug('Handled exception: ' + message, *args,
-                 exc_info=sys.exc_info(), **kwargs)
-
-# Create hash by dumping to json string with sorted keys.
-_hash_dumps = partial(json.dumps, sort_keys=True, cls=_HashJSONEncoder)
