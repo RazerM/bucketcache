@@ -10,7 +10,7 @@ from pathlib import Path
 
 import six
 from boltons.formatutils import DeferredValue as DV
-from represent import ReprHelper
+from represent import ReprHelperMixin
 
 from .backends import Backend, PickleBackend
 from .compat.contextlib import suppress
@@ -23,7 +23,7 @@ from .utilities import DecoratorFactory, raise_invalid_keys
 __all__ = ('Bucket', 'DeferredWriteBucket', 'deferred_write')
 
 
-class Bucket(Container, object):
+class Bucket(ReprHelperMixin, Container, object):
     """Dictionary-like object backed by a file cache.
 
     Parameters:
@@ -360,7 +360,7 @@ class Bucket(Container, object):
     def _write_mode(self):
         return 'wb' if self.backend.binary_format else 'w'
 
-    def _repr_helper(self, r):
+    def _repr_helper_(self, r):
         r.keyword_with_value('path', str(self.path))
         r.keyword_from_attr('config')
         r.keyword_with_value('backend', self.backend.__name__, raw=True)
@@ -369,15 +369,6 @@ class Bucket(Container, object):
                 value = getattr(self.lifetime, attr)
                 if value:
                     r.keyword_with_value(attr, value)
-
-    def __repr__(self):
-        r = ReprHelper(self)
-        self._repr_helper(r)
-        return str(r)
-
-    def _repr_pretty_(self, p, cycle):
-        with PrettyReprHelper(self, p, cycle) as r:
-            self._repr_helper(r)
 
 
 class DeferredWriteBucket(Bucket):
