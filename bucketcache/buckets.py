@@ -18,7 +18,7 @@ from .exceptions import (
     BackendLoadError, KeyExpirationError, KeyFileNotFoundError, KeyInvalidError)
 from .keymakers import DefaultKeyMaker
 from .log import log_full_keys, log_handled_exception, logger
-from .utilities import DecoratorFactory, raise_invalid_keys
+from .utilities import DecoratorFactory, raise_invalid_keys, PrunedFilesInfo
 
 __all__ = ('Bucket', 'DeferredWriteBucket', 'deferred_write')
 
@@ -232,6 +232,51 @@ class Bucket(ReprHelperMixin, Container, object):
             del self._cache[key_hash]
         else:
             raise KeyError(self._abbreviate(key))
+
+    def prune_directory(self):
+        """Delete any objects that can be loaded and are expired according to
+        the current lifetime setting.
+
+        A file will be deleted if the following conditions are met:
+
+        - The file extension matches :py:meth:`bucketcache.backends.file_extension`
+        - The object can be loaded by the configured backend.
+        - The object's expiration date has passed.
+
+        Returns:
+            File size and number of files deleted.
+
+        :rtype: :py:class:`~bucketcache.utilities.PrunedFilesInfo`
+
+        .. note::
+
+            For any buckets that share directories, ``prune_directory`` will
+            affect files saved with both, if they use the same backend class.
+
+            This is not destructive, because only files that have expired
+            according to the lifetime of the original bucket are deleted.
+        """
+        glob = '*.{ext}'.format(ext=self.backend.file_extension)
+        totalsize = 0
+        totalnum = 0
+        for f in self._path.glob(glob):
+            filesize = f.stat().st_size
+            key_hash = f.stem
+            in_cache = key_hash in self._cache
+            try:
+                self._get_obj_from_hash(key_hash)
+            except KeyExpirationError:
+                # File has been deleted by `_get_obj_from_hash`
+                totalsize += filesize
+                totalnum += 1
+            except KeyInvalidError:
+                pass
+            except Exception as e:
+                raise
+            else:
+                if not in_cache:
+                    del self._cache[key_hash]
+        return PrunedFilesInfo(size=totalsize, num=totalnum)
 
     def unload_key(self, key):
         """Remove key from memory, leaving file in place."""

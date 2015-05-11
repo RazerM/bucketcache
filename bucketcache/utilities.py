@@ -30,6 +30,8 @@ CachedCallInfo = namedtuple(
     'CachedCallInfo',
     ['varargs', 'callargs', 'return_value', 'expiration_date'])
 
+PrunedFilesInfo = namedtuple('PrunedFilesInfo', ['size', 'num'])
+
 
 def fullargspec_from_argspec(argspec):
     return FullArgSpec(
