@@ -15,7 +15,7 @@ from represent import ReprHelperMixin
 from .backends import Backend, PickleBackend
 from .compat.contextlib import suppress
 from .exceptions import (
-    CacheLoadError, KeyExpirationError, KeyFileNotFoundError, KeyInvalidError)
+    BackendLoadError, KeyExpirationError, KeyFileNotFoundError, KeyInvalidError)
 from .keymakers import DefaultKeyMaker
 from .log import log_full_keys, log_handled_exception, logger
 from .utilities import DecoratorFactory, raise_invalid_keys
@@ -50,7 +50,7 @@ class Bucket(ReprHelperMixin, Container, object):
             passed_kwargs = set(kwargs)
 
             raise_invalid_keys(valid_kwargs, passed_kwargs,
-                                'Invalid lifetime argument{s}: {keys}')
+                               'Invalid lifetime argument{s}: {keys}')
 
             if lifetime:
                 raise ValueError("either 'lifetime' or lifetime arguments "
@@ -165,8 +165,8 @@ class Bucket(ReprHelperMixin, Container, object):
         key_hash = self._hash_for_key(key)
         try:
             obj = self._get_obj_from_hash(key_hash)
-        except KeyInvalidError:
-            raise KeyError(self._abbreviate(key))
+        except KeyInvalidError as e:
+            six.raise_from(KeyError(self._abbreviate(key)), e)
         else:
             return obj
 
@@ -182,19 +182,21 @@ class Bucket(ReprHelperMixin, Container, object):
                     obj = self.backend.from_file(f, config=self.config)
             except IOError as e:
                 if e.errno == errno.ENOENT:
-                    log_handled_exception('File not found: {}', file_path)
-                    raise KeyFileNotFoundError("<key hash '{}'>".format(key_hash))
+                    msg = 'File not found: {}'.format(file_path)
+                    log_handled_exception(msg)
+                    six.raise_from(KeyFileNotFoundError(msg), e)
                 else:
-                    logger.exception('Unexpected exception trying '
-                                     'to load file: {}', file_path)
+                    msg = 'Unexpected exception trying to load file: {}'
+                    logger.exception(msg, file_path)
                     raise
-            except CacheLoadError as e:
-                log_handled_exception('Backend {} failed to load file: {}',
-                                      self.backend, file_path)
-                raise KeyInvalidError(e)
-            except:
-                logger.exception('Unhandled exception trying '
-                                 'to load file: {}', file_path)
+            except BackendLoadError as e:
+                msg = 'Backend {} failed to load file: {}'
+                msg = msg.format(self.backend, file_path)
+                log_handled_exception(msg)
+                six.raise_from(KeyInvalidError(msg), e)
+            except Exception as e:
+                msg = 'Unhandled exception trying to load file: {}'
+                logger.exception(msg, file_path)
                 raise
 
             self._cache[key_hash] = obj
@@ -314,7 +316,7 @@ class Bucket(ReprHelperMixin, Container, object):
         path = self._path_for_hash(key_hash)
         return path, key_hash
 
-    def _path_for_key(self, key, key_hash=None):
+    def _path_for_key(self, key):
         key_hash = self._hash_for_key(key)
         return self._path_for_hash(key_hash)
 

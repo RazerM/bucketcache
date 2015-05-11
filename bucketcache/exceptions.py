@@ -4,7 +4,7 @@ __all__ = (
     'KeyInvalidError',
     'KeyFileNotFoundError',
     'KeyExpirationError',
-    'CacheLoadError',
+    'BackendLoadError',
 )
 
 
@@ -23,6 +23,6 @@ class KeyExpirationError(KeyInvalidError):
     pass
 
 
-class CacheLoadError(Exception):
+class BackendLoadError(Exception):
     """Raised when Backend.from_file cannot load an object."""
     pass

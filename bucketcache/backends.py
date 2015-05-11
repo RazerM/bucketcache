@@ -123,7 +123,7 @@ class Backend(ReprMixin, object):
         .. warning::
 
            If the appropriate data cannot be ready from `fp`, this method
-           should raise :py:exc:`~bucketcache.exceptions.CacheLoadError` to
+           should raise :py:exc:`~bucketcache.exceptions.BackendLoadError` to
            inform :py:class:`~bucketcache.buckets.Bucket` that this cached file
            cannot be used.
         """
@@ -160,10 +160,13 @@ class PickleBackend(Backend):
         else:
             kwargs = dict()
 
+        possible_exceptions = (pickle.UnpicklingError, AttributeError,
+                               EOFError, ImportError, IndexError)
         try:
             data = pickle.load(fp, **kwargs)
-        except pickle.UnpicklingError as e:
-            raise CacheLoadError(e)
+        except possible_exceptions as e:
+            msg = '{!r} could not be unpickled.'.format(fp.name)
+            six.raise_from(BackendLoadError(msg), e)
 
         return cls(config=config, **data)
 
@@ -199,7 +202,8 @@ class JSONBackend(Backend):
         try:
             data = json.load(fp, **kwargs)
         except ValueError as e:
-            raise CacheLoadError(e)
+            msg = 'json file {!r} could not be loaded.'.format(fp.name)
+            six.raise_from(BackendLoadError(msg), e)
         value = data['value']
         expiration_date = data['expiration_date']
         if expiration_date:
@@ -246,10 +250,13 @@ class MessagePackBackend(Backend):
         kwargs = {k: v for k, v in six.iteritems(dconfig) if k in keys}
         kwargs['encoding'] = dconfig['unpack_encoding']
 
+        possible_exceptions = (msgpack.exceptions.ExtraData,
+                               msgpack.exceptions.UnpackException)
         try:
             data = msgpack.unpack(fp, **kwargs)
-        except msgpack.exceptions.ExtraData as e:
-            raise CacheLoadError(e)
+        except possible_exceptions as e:
+            msg = 'MessagePack file {!r} could not be unpacked.'.format(fp.name)
+            six.raise_from(BackendLoadError(msg), e)
 
         value = data['value']
         expiration_date = data['expiration_date']
