@@ -25,7 +25,7 @@ Before everything is explained in detail, here's a quick look at the functionali
             print('Method called.')
 
         @expensive_method.callback
-        def expensive_method():
+        def expensive_method(self, callinfo):
             print('Cache used.')
 
     some_service = SomeService()
@@ -97,6 +97,106 @@ For example, protocol version 4 could be used if on Python 3.4+
 
 Typically, all of the parameters that can be used by the relevant `dump` or `load` methods can be specified in a config object.
 
+Decorator
+---------
+
+Functions and methods
+^^^^^^^^^^^^^^^^^^^^^
+
+.. code-block:: python
+
+    @bucket
+    def function(a, b):
+        ...
+
+    class A(object):
+        @bucket(method=True)
+        def method(self, a, b):
+            ...
+
+    result = function(1, 2)
+    result = function(1, 2)  # Cached result
+
+    a = A()
+    result = a.method(3, 4)
+    result = a.method(3, 4)  # Cached result
+
+Callback
+^^^^^^^^
+
+.. code-block:: python
+
+    >>> @bucket
+    ... def function(a, b):
+    ...     return a + b
+
+    >>> @function.callback
+    ... def function(callinfo):
+    ...     print(callinfo)
+
+    >>> function(1, 2)
+    3
+    >>> function(1, 2)
+    CachedCallInfo(varargs=(), callargs={'a': 1, 'b': 2}, return_value=3, expiration_date=datetime.datetime(2015, 1, 1, 9, 0, 0))
+    3
+
+Properties
+^^^^^^^^^^
+
+.. code-block:: python
+
+    class A(object):
+        @property
+        @bucket(method=True)
+        def this(self):
+            ...
+
+        @bucket(method=True)
+        @property
+        def that(self):
+            ...
+
+To use callback with properties, define the method first.
+
+.. code-block:: python
+
+    class A(object):
+        @bucket(method=True)
+        def this(self):
+            ...
+
+        @this.callback
+        def this(self, callinfo):
+            ...
+
+        this = property(this)
+
+Skip cache
+^^^^^^^^^^
+
+.. code-block:: python
+
+    @bucket(nocache='refresh')
+    def function(self, refresh=False):
+        ...
+
+    function()
+
+    # Next call to function would use cached value, unless refresh==True
+    function(refresh=True)
+
+Ignored parameters
+^^^^^^^^^^^^^^^^^^
+
+.. code-block:: python
+
+    @bucket(ignore=['c'])
+    def function(a, b, c):
+        ...
+
+    function(1, 2, 3)
+    function(1, 2, 4)  # Uses cached result even though c is different
+
 Deferred Writes
 ---------------
 
@@ -128,62 +228,3 @@ It's also possible to create a :py:class:`~bucketcache.DeferredWriteBucket` manu
     bucket.sync()  # Writing happens here.
 
 Note that calling :py:meth:`~bucketcache.DeferredWriteBucket.unload_key` on a :py:class:`~bucketcache.DeferredWriteBucket` forces a sync.
-
-Decorator
----------
-
-Buckets can be used as function **and** method decorators.
-
-As an example, we might want to download hourly forecast data:
-
-.. code-block:: python
-
-    bucket = Bucket('path', hours=1)
-
-    @bucket
-    def download_weather_forecast(location):
-        ...
-
-    download_weather_forecast('Glasgow')  # Slow
-    download_weather_forecast('Glasgow')  # Fast, uses cache.
-
-We can use a callback to inform the user if the data is from the cache:
-
-.. code-block:: python
-
-    @download_weather_forecast.callback
-    def download_weather_forecast():
-        print('This data is not up-to-date. New forecasts are downloaded hourly.')
-
-.. note::
-
-    The original function is used as a decorator to create the callback, enforcing the order they are defined.
-
-Let's modify the original function to allow refreshing the data manually:
-
-.. code-block:: python
-
-    @bucket(nocache='refresh')
-    def download_weather_forecast(location, refresh=False):
-        ...
-    
-    @download_weather_forecast.callback():
-    def download_weather_forecast():
-        print('This data is not up-to-date. New forecasts are downloaded hourly.')
-
-By passing ``nocache='refresh'``, this tells the Bucket to **automatically** skip the cache if ``refresh == True``.
-
-Using bucket as a decorator on methods is almost identical; just add ``method=True`` to the decorator arguments.
-
-.. code-block:: python
-
-    class WeatherForecaster():
-        @bucket(method=True, nocache='refresh')
-        def download(self, location, refresh=False):
-            ...
-
-        @download.callback
-        def download(self):
-            ...
-
-.. note:: The attribute dictionary (``instance.__dict__``) is used to create the keys for methods.

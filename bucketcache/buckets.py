@@ -300,6 +300,28 @@ class Bucket(ReprHelperMixin, Container, object):
             @bucket(method=True)
             def fun(self, ...):
                 ...
+
+        Use `nocache='argname'` for argument that can skip cache.
+
+        .. code:: python
+
+            @bucket(nocache='refresh')
+            def fun(refresh=False):
+                ...
+
+            fun(refresh=True)  # Cache not used.
+
+        Use `ignore=['argname1', 'argname2', ...]` to ignore arguments when
+        making cache key.
+
+        .. code:: python
+
+            @bucket(ignore=['log'])
+            def get(name, log):
+                ...
+
+            get('spam')
+            get('spam', log=True)  # Cache used even though arguments differ.
         """
         f = None
         default_kwargs = {'method': False, 'nocache': None, 'ignore': None}
@@ -332,7 +354,7 @@ class Bucket(ReprHelperMixin, Container, object):
         missing_kwargs = valid_kwargs - passed_kwargs
 
         raise_invalid_keys(valid_kwargs, passed_kwargs,
-                            'Invalid decorator argument{s}: {keys}')
+                           'Invalid decorator argument{s}: {keys}')
 
         kwargs.update({k: default_kwargs[k] for k in missing_kwargs})
         method = kwargs['method']
