@@ -17,8 +17,8 @@ from .compat.contextlib import suppress
 from .exceptions import (
     BackendLoadError, KeyExpirationError, KeyFileNotFoundError, KeyInvalidError)
 from .keymakers import DefaultKeyMaker
-from .log import log_full_keys, log_handled_exception, logger
-from .utilities import DecoratorFactory, raise_invalid_keys, PrunedFilesInfo
+from .log import log_handled_exception, logger, logger_config
+from .utilities import DecoratorFactory, PrunedFilesInfo, raise_invalid_keys
 
 __all__ = ('Bucket', 'DeferredWriteBucket', 'deferred_write')
 
@@ -392,7 +392,7 @@ class Bucket(ReprHelperMixin, Container, object):
         return self._path / filename
 
     def _hash_for_key(self, key):
-        if log_full_keys:
+        if logger_config.log_full_keys:
             dkey = key
         else:
             dkey = DV(lambda: self._abbreviate(key))
