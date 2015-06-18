@@ -43,7 +43,7 @@ class SomeService(object):
         print('Method called.')
 
     @expensive_method.callback
-    def expensive_method():
+    def expensive_method(callinfo):
         print('Cache used.')
 
 some_service = SomeService()
