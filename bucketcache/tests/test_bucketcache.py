@@ -115,6 +115,11 @@ def test_default_keymaker(cache_all):
             self.a = a
             self.b = b
 
+    class B2(B):
+        """Test classes with empty __slots__ (to preserve parent class' slots)"""
+        __slots__ = ()
+        pass
+
     class C(object):
         """Test __dict__ is used normally."""
         def __init__(self, a, b):
@@ -134,10 +139,12 @@ def test_default_keymaker(cache_all):
 
     a = A(1, 2)
     b = B(1, 2)
+    b2 = B2(1, 2)
     c = C(1, 2)
     d = D(1, 2)
     assert cache.keymaker.make_key(a) == b'"getstate"'
     assert cache.keymaker.make_key(b) == b'{"a": 1, "b": 2}'
+    assert cache.keymaker.make_key(b2) == b'{"a": 1, "b": 2}'
     assert cache.keymaker.make_key(c) == b'{"a": 1, "b": 2}'
     assert cache.keymaker.make_key(d) == b'"getstate"'
 

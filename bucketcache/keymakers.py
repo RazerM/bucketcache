@@ -72,9 +72,22 @@ class _AnyObjectJSONEncoder(json.JSONEncoder):
             return o.__getstate__()
 
         if hasattr(o, '__slots__'):
-            return {k: getattr(o, k) for k in o.__slots__ if hasattr(o, k)}
+            all_slots = set()
+            for cls in o.__class__.__mro__:
+                slots = getattr(cls, '__slots__', tuple())
+                slots = normalise_slots(slots)
+                all_slots.update(slots)
+
+            return {k: getattr(o, k) for k in all_slots if hasattr(o, k)}
 
         with suppress(AttributeError):
             return o.__dict__
 
         return repr(o)
+
+def normalise_slots(obj):
+    """__slots__ can be a string for single attribute. Return inside tuple."""
+    if isinstance(obj, six.string_types):
+        return (obj,)
+    else:
+        return obj
