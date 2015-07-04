@@ -164,9 +164,9 @@ class PickleBackend(Backend):
                                EOFError, ImportError, IndexError)
         try:
             data = pickle.load(fp, **kwargs)
-        except possible_exceptions as e:
+        except possible_exceptions:
             msg = '{!r} could not be unpickled.'.format(fp.name)
-            six.raise_from(BackendLoadError(msg), e)
+            raise BackendLoadError(msg)
 
         return cls(config=config, **data)
 
@@ -201,9 +201,9 @@ class JSONBackend(Backend):
 
         try:
             data = json.load(fp, **kwargs)
-        except ValueError as e:
+        except ValueError:
             msg = 'json file {!r} could not be loaded.'.format(fp.name)
-            six.raise_from(BackendLoadError(msg), e)
+            raise BackendLoadError(msg)
         value = data['value']
         expiration_date = data['expiration_date']
         if expiration_date:
@@ -254,9 +254,9 @@ class MessagePackBackend(Backend):
                                msgpack.exceptions.UnpackException)
         try:
             data = msgpack.unpack(fp, **kwargs)
-        except possible_exceptions as e:
+        except possible_exceptions:
             msg = 'MessagePack file {!r} could not be unpacked.'.format(fp.name)
-            six.raise_from(BackendLoadError(msg), e)
+            raise BackendLoadError(msg)
 
         value = data['value']
         expiration_date = data['expiration_date']

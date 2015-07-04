@@ -165,8 +165,8 @@ class Bucket(ReprHelperMixin, Container, object):
         key_hash = self._hash_for_key(key)
         try:
             obj = self._get_obj_from_hash(key_hash)
-        except KeyInvalidError as e:
-            six.raise_from(KeyError(self._abbreviate(key)), e)
+        except KeyInvalidError:
+            raise KeyError(self._abbreviate(key))
         else:
             return obj
 
@@ -184,17 +184,17 @@ class Bucket(ReprHelperMixin, Container, object):
                 if e.errno == errno.ENOENT:
                     msg = 'File not found: {}'.format(file_path)
                     log_handled_exception(msg)
-                    six.raise_from(KeyFileNotFoundError(msg), e)
+                    raise KeyFileNotFoundError(msg)
                 else:
                     msg = 'Unexpected exception trying to load file: {}'
                     logger.exception(msg, file_path)
                     raise
-            except BackendLoadError as e:
+            except BackendLoadError:
                 msg = 'Backend {} failed to load file: {}'
                 msg = msg.format(self.backend, file_path)
                 log_handled_exception(msg)
-                six.raise_from(KeyInvalidError(msg), e)
-            except Exception as e:
+                raise KeyInvalidError(msg)
+            except Exception:
                 msg = 'Unhandled exception trying to load file: {}'
                 logger.exception(msg, file_path)
                 raise
@@ -271,7 +271,7 @@ class Bucket(ReprHelperMixin, Container, object):
                 totalnum += 1
             except KeyInvalidError:
                 pass
-            except Exception as e:
+            except Exception:
                 raise
             else:
                 if not in_cache:
