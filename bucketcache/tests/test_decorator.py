@@ -9,7 +9,7 @@ from six import exec_
 
 from bucketcache import DeferredWriteBucket
 
-from . import cache_all, deferred_cache_all, requires_python_version
+from . import *
 
 
 def test_methods(cache_all):

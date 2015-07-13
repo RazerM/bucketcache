@@ -9,8 +9,7 @@ from bucketcache import Bucket, deferred_write, DeferredWriteBucket
 from bucketcache.backends import Backend, MessagePackBackend, PickleBackend
 from bucketcache.config import PickleConfig
 
-from . import (
-    cache_all, cache_serializable, deferred_cache_all, expiring_cache_all, slow)
+from . import *
 
 try:
     from unittest.mock import patch
@@ -94,9 +93,9 @@ def test_complex_keys(cache_all):
         cache[long_missing_key]
 
 
-def test_default_keymaker(cache_all):
+def test_default_keymaker(keymakers_all):
     """Test some basic assumptions of DefaultKeyMaker"""
-    cache = cache_all
+    keymaker = keymakers_all()
 
     class A(object):
         """Test __getstate__ is called"""
@@ -142,11 +141,11 @@ def test_default_keymaker(cache_all):
     b2 = B2(1, 2)
     c = C(1, 2)
     d = D(1, 2)
-    assert cache.keymaker.make_key(a) == b'"getstate"'
-    assert cache.keymaker.make_key(b) == b'{"a": 1, "b": 2}'
-    assert cache.keymaker.make_key(b2) == b'{"a": 1, "b": 2}'
-    assert cache.keymaker.make_key(c) == b'{"a": 1, "b": 2}'
-    assert cache.keymaker.make_key(d) == b'"getstate"'
+    assert b''.join(keymaker.make_key(a)) == b'"getstate"'
+    assert b''.join(keymaker.make_key(b)) == b'{"a": 1, "b": 2}'
+    assert b''.join(keymaker.make_key(b2)) == b'{"a": 1, "b": 2}'
+    assert b''.join(keymaker.make_key(c)) == b'{"a": 1, "b": 2}'
+    assert b''.join(keymaker.make_key(d)) == b'"getstate"'
 
 
 def test_unknown_load_error(tmpdir):

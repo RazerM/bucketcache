@@ -3,6 +3,7 @@ from __future__ import absolute_import, division, print_function
 import json
 from abc import ABCMeta, abstractmethod
 from functools import partial
+from tempfile import TemporaryFile
 
 import six
 from represent import ReprMixin
@@ -11,6 +12,7 @@ from .compat.contextlib import suppress
 
 __all__ = (
     'DefaultKeyMaker',
+    'StreamingDefaultKeyMaker',
 )
 
 
@@ -27,8 +29,8 @@ class KeyMaker(ReprMixin, object):
         Parameters:
             obj: Any Python object.
 
-        Returns:
-            bytes: Key to represent object.
+        Yields:
+            bytes of key to represent object.
         """
         raise NotImplementedError
 
@@ -50,7 +52,21 @@ class DefaultKeyMaker(KeyMaker):
     def make_key(self, obj):
         keystr = json.dumps(
             obj, sort_keys=self.sort_keys, cls=_AnyObjectJSONEncoder)
-        return keystr.encode('utf-8')
+        yield keystr.encode('utf-8')
+
+
+class StreamingDefaultKeyMaker(DefaultKeyMaker):
+    """Subclass of DefaultKeyMaker that uses a temporary file to save memory."""
+    def make_key(self, obj):
+        with TemporaryFile(mode='w+') as f:
+            json.dump(
+                obj, f, sort_keys=self.sort_keys, cls=_AnyObjectJSONEncoder)
+            f.seek(0)
+            while True:
+                data = f.read(65536)
+                if not data:
+                    break
+                yield data.encode('utf-8')
 
 
 class _AnyObjectJSONEncoder(json.JSONEncoder):

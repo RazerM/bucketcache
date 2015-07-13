@@ -6,7 +6,7 @@ import pytest
 
 from bucketcache import deferred_write
 
-from . import cache_all, slow
+from . import *
 
 
 @slow
