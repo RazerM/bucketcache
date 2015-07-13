@@ -29,7 +29,7 @@ class Bucket(ReprHelperMixin, Container, object):
     Parameters:
         backend: Backend class. Default:
                  :py:class:`~bucketcache.backends.PickleBackend`
-        path: Directory for storing cached objects.
+        path: Directory for storing cached objects. Will be created if missing.
         config: `Config` instance for backend.
         keymaker: `KeyMaker` instance for object -> key serialization.
         lifetime: Key lifetime.
@@ -61,11 +61,10 @@ class Bucket(ReprHelperMixin, Container, object):
         # Now we're thinking with portals.
         self._cache = dict()
 
-        self._path = Path(path)
+        self._path = Path(path).resolve()
 
         with suppress(OSError):
             self.path.mkdir()
-        self.path.resolve()
 
         if backend is not None:
             self.backend = backend
