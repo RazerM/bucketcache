@@ -239,7 +239,7 @@ class Bucket(ReprHelperMixin, Container, object):
 
         A file will be deleted if the following conditions are met:
 
-        - The file extension matches :py:meth:`bucketcache.backends.file_extension`
+        - The file extension matches :py:meth:`bucketcache.backends.Backend.file_extension`
         - The object can be loaded by the configured backend.
         - The object's expiration date has passed.
 
