@@ -399,11 +399,13 @@ class Bucket(ReprHelperMixin, Container, object):
 
         md5hash = md5(self.backend.__name__.encode('utf-8'))
         for batch in self.keymaker.make_key(key):
+            logger.debug('_hash_for_key received bytes: {}', batch)
             md5hash.update(batch)
 
-        logger.debug('_hash_for_key finished.')
+        digest = md5hash.hexdigest()
+        logger.debug('_hash_for_key finished with digest {}', digest)
 
-        return md5hash.hexdigest()
+        return digest
 
     @staticmethod
     def _abbreviate(obj):
