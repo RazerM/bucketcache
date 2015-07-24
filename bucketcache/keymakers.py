@@ -62,10 +62,7 @@ class StreamingDefaultKeyMaker(DefaultKeyMaker):
             json.dump(
                 obj, f, sort_keys=self.sort_keys, cls=_AnyObjectJSONEncoder)
             f.seek(0)
-            while True:
-                data = f.read(65536)
-                if not data:
-                    break
+            for data in iter(partial(f.read, 65536), ''):
                 yield data.encode('utf-8')
 
 
