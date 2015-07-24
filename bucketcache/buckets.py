@@ -399,7 +399,8 @@ class Bucket(ReprHelperMixin, Container, object):
 
         md5hash = md5(self.backend.__name__.encode('utf-8'))
         for batch in self.keymaker.make_key(key):
-            logger.debug('_hash_for_key received bytes: {}', batch)
+            if logger_config.log_full_keys:
+                logger.debug('_hash_for_key received bytes: {}', batch)
             md5hash.update(batch)
 
         digest = md5hash.hexdigest()
