@@ -12,6 +12,7 @@ from bucketcache.keymakers import DefaultKeyMaker, StreamingDefaultKeyMaker
 cache_objects = [JSONBackend, MessagePackBackend, PickleBackend]
 cache_ids = ['json', 'msgpack', 'pickle']
 keymakers = [DefaultKeyMaker, StreamingDefaultKeyMaker]
+keymaker_ids = ['DefaultKeyMaker', 'StreamingDefaultKeyMaker']
 
 __all__ = [
     'slow',
@@ -25,7 +26,7 @@ __all__ = [
 
 slow = pytest.mark.slow
 
-@pytest.yield_fixture(params=keymakers)
+@pytest.yield_fixture(params=keymakers, ids=keymaker_ids)
 def keymakers_all(request):
     yield request.param
 
