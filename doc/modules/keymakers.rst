@@ -12,6 +12,10 @@ bucketcache.keymakers
       :show-inheritance:
       :members:
 
+   .. autoclass:: bucketcache.keymakers.StreamingDefaultKeyMaker
+   	:show-inheritance:
+   	:members:
+
    .. autoclass:: bucketcache.keymakers._AnyObjectJSONEncoder
    	:show-inheritance:
    	:members:

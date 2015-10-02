@@ -101,6 +101,19 @@ For example, protocol version 4 could be used if on Python 3.4+
 
 Typically, all of the parameters that can be used by the relevant `dump` or `load` methods can be specified in a config object.
 
+KeyMakers
+^^^^^^^^^
+
+Buckets can use any backend conforming to abstract class :py:class:`bucketcache.keymakers.KeyMaker`. By default, :py:class:`~bucketcache.keymakers.DefaultKeyMaker` is used, as it can convert almost any object into a key.
+
+As :py:class:`~bucketcache.keymakers.DefaultKeyMaker` converts objects to keys in memory, this can cause problems with large key objects. :py:class:`~bucketcache.keymakers.StreamingDefaultKeyMaker` can be used instead, which uses a temporary file behind the scenes to reduce memory usage.
+
+.. code-block:: python
+
+    from bucketcache import StreamingDefaultKeyMaker
+
+    bucket = Bucket('path', keymaker=StreamingDefaultKeyMaker())
+
 Decorator
 ---------
 
