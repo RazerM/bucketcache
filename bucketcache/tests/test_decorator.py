@@ -413,8 +413,6 @@ def test_property(cache_all):
     assert eggs_callback_called
 
 
-@pytest.mark.xfail(sys.version_info >= (3,),
-                   reason="decorator.decorator doesn't support __qualname__")
 def test_introspection(cache_all):
     """Ensure decorator preserves function attributes and argspec."""
     cache = cache_all
