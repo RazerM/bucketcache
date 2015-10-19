@@ -61,10 +61,12 @@ class Bucket(ReprHelperMixin, Container, object):
         # Now we're thinking with portals.
         self._cache = dict()
 
-        self._path = Path(path).resolve()
+        _path = Path(path)
 
         with suppress(OSError):
-            self.path.mkdir()
+            _path.mkdir()
+
+        self._path = _path.resolve()
 
         if backend is not None:
             self.backend = backend

@@ -18,6 +18,7 @@ AUTHOR, EMAIL = re.match(r'(.*) <(.*)>', AUTHOR_EMAIL).groups()
 
 requires = ['boltons', 'decorator>=4.0.2', 'logbook', 'python-dateutil',
             'represent>=1.3.0', 'six>=1.9.0']
+
 if sys.version_info[:2] < (3, 4):
     requires.append('pathlib')
 
