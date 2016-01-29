@@ -1,7 +1,8 @@
 import re
 import sys
 
-from setuptools import setup, Command, find_packages
+from setuptools import setup, find_packages
+from setuptools.command.test import test as TestCommand
 
 
 INIT_FILE = 'bucketcache/__init__.py'
@@ -16,50 +17,76 @@ DESCRIPTION = metadata['description']
 
 AUTHOR, EMAIL = re.match(r'(.*) <(.*)>', AUTHOR_EMAIL).groups()
 
-requires = ['boltons', 'decorator>=4.0.2', 'logbook', 'python-dateutil',
-            'represent>=1.3.0', 'six>=1.9.0']
-
-if sys.version_info[:2] < (3, 4):
-    requires.append('pathlib')
-
-extras_require = {}
-extras_require.update(
-    test=[
-        'msgpack-python',
-        'pytest',
-        'pytest-benchmark',
-        'pytest-cov',
-        'pytest-xdist',
-    ])
-
-if sys.version_info < (3, 3):
-    extras_require['test'].append('mock')
-
-extras_require.update(
-    dev=[
-        'clint',
-        'packaging',
-        'shovel',
-        'sphinx',
-        'twine',
-    ] + extras_require['test'])
+requires = {
+    'boltons',
+    'decorator>=4.0.2',
+    'logbook>=0.12.5',
+    'python-dateutil',
+    'represent>=1.4.0',
+    'six>=1.9.0',
+}
 
 
-class PyTest(Command):
-    """Allow 'python setup.py test' to run without first installing pytest"""
-    user_options = []
+def add_to_extras(extras_require, dest, source):
+    """Add dependencies from `source` extra to `dest` extra, handling
+    conditional dependencies.
+    """
+    for key, deps in list(extras_require.items()):
+        extra, _, condition = key.partition(':')
+        if extra == source:
+            if condition:
+                try:
+                    extras_require[dest + ':' + condition] |= deps
+                except KeyError:
+                    extras_require[dest + ':' + condition] = deps
+            else:
+                try:
+                    extras_require[dest] |= deps
+                except KeyError:
+                    extras_require[dest] = deps
+
+extras_require = dict()
+
+extras_require[':python_version<"3.4"'] = {'pathlib'}
+
+extras_require['test'] = {
+    'msgpack-python',
+    'pytest',
+    'pytest-benchmark',
+    'pytest-cov',
+    'pytest-xdist',
+}
+
+extras_require['test:python_version<"3.3"'] = {'mock'}
+
+extras_require['dev'] = {
+    'clint',
+    'packaging',
+    'shovel',
+    'sphinx',
+    'twine',
+}
+
+add_to_extras(extras_require, 'dev', 'test')
+
+
+class PyTest(TestCommand):
+    user_options = [('pytest-args=', 'a', "Arguments to pass to py.test")]
 
     def initialize_options(self):
-        pass
+        TestCommand.initialize_options(self)
+        self.pytest_args = []
 
     def finalize_options(self):
-        pass
+        TestCommand.finalize_options(self)
+        self.test_args = []
+        self.test_suite = True
 
-    def run(self):
-        import subprocess
-        import sys
-        errno = subprocess.call([sys.executable, 'runtests.py'])
-        raise SystemExit(errno)
+    def run_tests(self):
+        # import here, cause outside the eggs aren't loaded
+        import pytest
+        errno = pytest.main(self.pytest_args)
+        sys.exit(errno)
 
 setup(
     name='BucketCache',
