@@ -12,6 +12,6 @@ __all__ = (backends.__all__ + buckets.__all__ + config.__all__ +
            exceptions.__all__ + keymakers.__all__ + utilities.__all__)
 
 __author__ = 'Frazer McLean <frazer@frazermclean.co.uk>'
-__version__ = '0.11.1'
+__version__ = '0.11.2'
 __license__ = 'MIT'
 __description__ = 'Versatile persisent file cache.'
