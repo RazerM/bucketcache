@@ -61,10 +61,12 @@ class Bucket(ReprHelperMixin, Container, object):
         # Now we're thinking with portals.
         self._cache = dict()
 
-        self._path = Path(path).resolve()
+        _path = Path(path)
 
         with suppress(OSError):
-            self.path.mkdir()
+            _path.mkdir()
+
+        self._path = _path.resolve()
 
         if backend is not None:
             self.backend = backend
@@ -399,11 +401,14 @@ class Bucket(ReprHelperMixin, Container, object):
 
         md5hash = md5(self.backend.__name__.encode('utf-8'))
         for batch in self.keymaker.make_key(key):
+            if logger_config.log_full_keys:
+                logger.debug('_hash_for_key received bytes: {}', batch)
             md5hash.update(batch)
 
-        logger.debug('_hash_for_key finished.')
+        digest = md5hash.hexdigest()
+        logger.debug('_hash_for_key finished with digest {}', digest)
 
-        return md5hash.hexdigest()
+        return digest
 
     @staticmethod
     def _abbreviate(obj):
