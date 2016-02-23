@@ -96,7 +96,7 @@ setup(
     author=AUTHOR,
     author_email=EMAIL,
     url='https://github.com/RazerM/bucketcache',
-    packages=find_packages(),
+    packages=find_packages(exclude=['tests']),
     cmdclass={'test': PyTest},
     classifiers=[
         'Development Status :: 4 - Beta',
