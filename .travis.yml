@@ -19,7 +19,7 @@ matrix:
       env: TOXENV=pypy3
 
 install:
-  - pip install -U setuptools wheel pip tox
+  - pip install tox
 
 script:
   - tox
