@@ -24,7 +24,6 @@ requires = {
     'python-dateutil',
     'represent>=1.4.0',
     'six>=1.9.0',
-    'setuptools>=17.1',
 }
 
 
@@ -107,5 +106,4 @@ setup(
     ],
     license=LICENSE,
     install_requires=requires,
-    extras_require=extras_require,
-    setup_requires=['setuptools>=17.1'])
+    extras_require=extras_require)
