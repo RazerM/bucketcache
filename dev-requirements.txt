@@ -1,0 +1,6 @@
+-e .[test]
+clint
+packaging
+shovel
+sphinx
+twine

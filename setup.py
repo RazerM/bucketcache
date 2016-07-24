@@ -27,24 +27,6 @@ requires = {
 }
 
 
-def add_to_extras(extras_require, dest, source):
-    """Add dependencies from `source` extra to `dest` extra, handling
-    conditional dependencies.
-    """
-    for key, deps in list(extras_require.items()):
-        extra, _, condition = key.partition(':')
-        if extra == source:
-            if condition:
-                try:
-                    extras_require[dest + ':' + condition] |= deps
-                except KeyError:
-                    extras_require[dest + ':' + condition] = deps
-            else:
-                try:
-                    extras_require[dest] |= deps
-                except KeyError:
-                    extras_require[dest] = deps
-
 extras_require = dict()
 
 extras_require[':python_version<"3.4"'] = {'pathlib'}
@@ -58,16 +40,6 @@ extras_require['test'] = {
 }
 
 extras_require['test:python_version<"3.3"'] = {'mock'}
-
-extras_require['dev'] = {
-    'clint',
-    'packaging',
-    'shovel',
-    'sphinx',
-    'twine',
-}
-
-add_to_extras(extras_require, 'dev', 'test')
 
 
 class PyTest(TestCommand):
