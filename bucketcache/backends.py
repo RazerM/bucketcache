@@ -6,7 +6,7 @@ from datetime import datetime
 
 import six
 from dateutil.parser import parse
-from represent import ReprMixin
+from represent import autorepr
 
 from .compat.abc import abstractclassmethod
 from .config import *
@@ -31,8 +31,9 @@ __all__ = (
 )
 
 
+@autorepr
 @six.add_metaclass(ABCMeta)
-class Backend(ReprMixin, object):
+class Backend(object):
     """Abstract base class for backends.
 
     Classes must implement abstract attributes:
@@ -54,8 +55,6 @@ class Backend(ReprMixin, object):
         self.value = value
         self.expiration_date = expiration_date
         self.config = self.valid_config(config)
-
-        super(Backend, self).__init__()
 
     @classmethod
     def check_concrete(cls, skip_methods=False):

@@ -22,7 +22,7 @@ requires = {
     'decorator>=4.0.2',
     'logbook>=0.12.5',
     'python-dateutil',
-    'represent>=1.4.0',
+    'represent>=1.5.1',
     'six>=1.9.0',
 }
 

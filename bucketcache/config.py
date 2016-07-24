@@ -1,7 +1,7 @@
 from __future__ import absolute_import, division, print_function
 
 import six
-from represent import ReprMixin
+from represent import autorepr
 
 __all__ = (
     'PickleConfig',
@@ -10,18 +10,16 @@ __all__ = (
 )
 
 
-class BackendConfig(ReprMixin, object):
+class BackendConfig(object):
     """Base class for :py:class:`~bucketcache.backends.Backend` configuration
     classes.
     """
-    def __init__(self):
-        super(BackendConfig, self).__init__()
-
     def asdict(self):
         return {k: v for k, v in six.iteritems(self.__dict__)
                 if not k.startswith('_')}
 
 
+@autorepr
 class PickleConfig(BackendConfig):
     """Configuration class for :py:class:`~bucketcache.backends.PickleBackend`
 
@@ -47,6 +45,7 @@ class PickleConfig(BackendConfig):
         super(PickleConfig, self).__init__()
 
 
+@autorepr
 class JSONConfig(BackendConfig):
     """Configuration class for :py:class:`~bucketcache.backends.JSONBackend`
 
@@ -83,6 +82,7 @@ class JSONConfig(BackendConfig):
         super(JSONConfig, self).__init__()
 
 
+@autorepr
 class MessagePackConfig(BackendConfig):
     """Configuration class for :py:class:`~bucketcache.backends.MessagePackBackend`
 

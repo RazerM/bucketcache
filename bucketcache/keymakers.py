@@ -6,7 +6,7 @@ from functools import partial
 from tempfile import TemporaryFile
 
 import six
-from represent import ReprMixin
+from represent import autorepr
 
 from .compat.contextlib import suppress
 
@@ -17,11 +17,8 @@ __all__ = (
 
 
 @six.add_metaclass(ABCMeta)
-class KeyMaker(ReprMixin, object):
+class KeyMaker(object):
     """KeyMaker abstract base class."""
-    def __init__(self):
-        super(KeyMaker, self).__init__()
-
     @abstractmethod
     def make_key(self, obj):
         """Make key from passed object.
@@ -35,6 +32,7 @@ class KeyMaker(ReprMixin, object):
         raise NotImplementedError
 
 
+@autorepr
 class DefaultKeyMaker(KeyMaker):
     """Default KeyMaker that is consistent across Python versions.
 
@@ -47,7 +45,6 @@ class DefaultKeyMaker(KeyMaker):
     """
     def __init__(self, sort_keys=True):
         self.sort_keys = sort_keys
-        super(DefaultKeyMaker, self).__init__()
 
     def make_key(self, obj):
         keystr = json.dumps(
