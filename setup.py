@@ -33,7 +33,7 @@ extras_require[':python_version<"3.4"'] = {'pathlib'}
 
 extras_require['test'] = {
     'msgpack-python',
-    'pytest',
+    'pytest>=3',
     'pytest-benchmark',
     'pytest-cov',
     'pytest-xdist',
