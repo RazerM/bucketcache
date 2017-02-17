@@ -289,7 +289,7 @@ texinfo_documents = [
 intersphinx_mapping = {
     'python': ('http://docs.python.org/3', None),
     'represent': ('http://represent.readthedocs.io/en/stable/', None),
-    'msgpack': ('http://pythonhosted.org/msgpack-python', None),
+    'msgpack': ('http://msgpack-python.readthedocs.io/en/stable/', None),
     'logbook': ('http://logbook.readthedocs.io/en/stable/', None),
 }
 
