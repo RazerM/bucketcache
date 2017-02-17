@@ -288,9 +288,9 @@ texinfo_documents = [
 # intersphinx
 intersphinx_mapping = {
     'python': ('http://docs.python.org/3', None),
-    'represent': ('http://pythonhosted.org/Represent', None),
+    'represent': ('http://represent.readthedocs.io/en/stable/', None),
     'msgpack': ('http://pythonhosted.org/msgpack-python', None),
-    'logbook': ('http://pythonhosted.org/Logbook', None),
+    'logbook': ('http://logbook.readthedocs.io/en/stable/', None),
 }
 
 autodoc_member_order = 'bysource'
