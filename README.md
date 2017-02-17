@@ -60,4 +60,4 @@ Method called
 
 For in-depth information, [visit the documentation][doc]!
 
-  [doc]: http://pythonhosted.org/BucketCache/
+  [doc]: http://bucketcache.readthedocs.io/

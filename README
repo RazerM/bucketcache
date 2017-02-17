@@ -10,8 +10,8 @@ Installation
 
     $ pip install bucketcache
 
-Automatic Generation
-~~~~~~~~~~~~~~~~~~~~
+Quick Overview
+~~~~~~~~~~~~~~
 
 In one sentence, ``Bucket`` is a container object with optional lifetime
 backed by configurable serialisation methods that can also act as a
@@ -59,7 +59,7 @@ Decorator:
     Method called
 
 For in-depth information, `visit the
-documentation <http://pythonhosted.org/BucketCache/>`__!
+documentation <http://bucketcache.readthedocs.io/>`__!
 
 .. |Build Status| image:: http://img.shields.io/travis/RazerM/bucketcache.svg?style=flat-square
    :target: https://travis-ci.org/RazerM/bucketcache
