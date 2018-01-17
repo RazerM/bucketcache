@@ -17,29 +17,29 @@ DESCRIPTION = metadata['description']
 
 AUTHOR, EMAIL = re.match(r'(.*) <(.*)>', AUTHOR_EMAIL).groups()
 
-requires = {
+requires = [
     'boltons',
     'decorator>=4.0.2',
     'logbook>=0.12.5',
     'python-dateutil',
     'represent>=1.5.1',
     'six>=1.9.0',
-}
+]
 
 
 extras_require = dict()
 
-extras_require[':python_version<"3.4"'] = {'pathlib'}
+extras_require[':python_version<"3.4"'] = ['pathlib']
 
-extras_require['test'] = {
+extras_require['test'] = [
     'msgpack-python',
     'pytest>=3',
     'pytest-benchmark',
     'pytest-cov',
     'pytest-xdist',
-}
+]
 
-extras_require['test:python_version<"3.3"'] = {'mock'}
+extras_require['test:python_version<"3.3"'] = ['mock']
 
 
 class PyTest(TestCommand):
